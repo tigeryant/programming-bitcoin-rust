@@ -1,3 +1,6 @@
+use ch_1::*;
+
 fn main() {
-    println!("Hello, world!");
+    let element = FieldElement::new(1, 97);
+    println!("element: {:?}", element);
 }
