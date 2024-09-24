@@ -1,5 +1,6 @@
 use std::ops::Add;
 use std::ops::Sub;
+use std::ops::Mul;
 
 #[derive(Debug)]
 pub struct FieldElement {
@@ -49,6 +50,21 @@ impl Sub for FieldElement {
             panic!("Cannot subtract two numbers in different fields")
         }
         let num = (self.num - other.num) % self.prime;
+        FieldElement {
+            num,
+            prime : self.prime
+        }
+    }
+}
+
+impl Mul for FieldElement {
+    type Output = Self;
+
+    fn mul(self, other: Self) -> Self {
+        if self.prime != other.prime {
+            panic!("Cannot multiply two numbers in different fields")
+        }
+        let num = (self.num * other.num) % self.prime;
         FieldElement {
             num,
             prime : self.prime
