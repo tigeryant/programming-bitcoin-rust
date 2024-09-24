@@ -1,0 +1,2 @@
+# programming-bitcoin-rust
+This repository contains my solutions to the exercises in the 'Programming Bitcoin' book, by Jimmy Song. All the exercises in the book are written in Python, so I will be porting the template code to Rust, and then writing my solution in Rust. As a new Rust programmer, I hope this will provide an opportunity to combine a long time interest of mine (Bitcoin), with a programming language that's new to me.
