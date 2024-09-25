@@ -1,0 +1,6 @@
+[package]
+name = "ch_2_elliptic_curves"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
