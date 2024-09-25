@@ -21,16 +21,16 @@ impl FieldElement {
     }
 }
 
-impl PartialEq for FieldElement {
+impl PartialEq for &FieldElement {
     fn eq(&self, other: &Self) -> bool {
         self.num == other.num && self.prime == other.prime
     }
 }
 
-impl Add for FieldElement {
-    type Output = Self;
+impl Add for &FieldElement {
+    type Output = FieldElement;
 
-    fn add(self, other: Self) -> Self {
+    fn add(self, other: Self) -> FieldElement {
         if self.prime != other.prime {
             panic!("Cannot add two numbers in different fields")
         }
@@ -42,10 +42,10 @@ impl Add for FieldElement {
     }
 }
 
-impl Sub for FieldElement {
-    type Output = Self;
+impl Sub for &FieldElement {
+    type Output = FieldElement;
 
-    fn sub(self, other: Self) -> Self {
+    fn sub(self, other: Self) -> FieldElement {
         if self.prime != other.prime {
             panic!("Cannot subtract two numbers in different fields")
         }
@@ -57,10 +57,10 @@ impl Sub for FieldElement {
     }
 }
 
-impl Mul for FieldElement {
-    type Output = Self;
+impl Mul for &FieldElement {
+    type Output = FieldElement;
 
-    fn mul(self, other: Self) -> Self {
+    fn mul(self, other: Self) -> FieldElement {
         if self.prime != other.prime {
             panic!("Cannot multiply two numbers in different fields")
         }
@@ -77,8 +77,8 @@ pub trait Pow {
     fn pow(self, exponent: u32) -> Self::Output;
 }
 
-impl Pow for FieldElement {
-    type Output = Self;
+impl Pow for &FieldElement {
+    type Output = FieldElement;
 
     fn pow(self, exponent: u32) -> Self::Output {
         let num = self.num.pow(exponent) % self.prime;
