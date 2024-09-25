@@ -71,3 +71,20 @@ impl Mul for FieldElement {
         }
     }
 }
+
+pub trait Pow {
+    type Output;
+    fn pow(self, exponent: u32) -> Self::Output;
+}
+
+impl Pow for FieldElement {
+    type Output = Self;
+
+    fn pow(self, exponent: u32) -> Self::Output {
+        let num = self.num.pow(exponent) % self.prime;
+        FieldElement {
+            num,
+            prime: self.prime, 
+        }
+    }
+}
