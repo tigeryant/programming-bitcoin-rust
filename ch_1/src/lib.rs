@@ -90,14 +90,16 @@ impl Div for &FieldElement {
 
 pub trait Pow {
     type Output;
-    fn pow(self, exponent: u128) -> Self::Output;
+    fn pow(self, exponent: i32) -> Self::Output;
 }
 
 impl Pow for &FieldElement {
     type Output = FieldElement;
 
-    fn pow(self, exponent: u128) -> Self::Output {
-        let num = self.num.pow(exponent.try_into().unwrap()) % self.prime;
+    fn pow(self, exponent: i32) -> Self::Output {
+        let p_minus_1: i32 = (self.prime - 1).try_into().unwrap();
+        let pos_n: u32 = (((exponent % p_minus_1) + p_minus_1) % p_minus_1).try_into().unwrap();
+        let num = self.num.pow(pos_n) % self.prime;
         FieldElement {
             num,
             prime: self.prime, 

@@ -51,3 +51,10 @@ fn a_div_b_eq_c() {
     let element_c = FieldElement::new(9, 19);
     assert!(&(&element_a / &element_b) == &element_c);
 }
+
+#[test]
+fn a_pow_negative_exponent() {
+    let element_a = FieldElement::new(7, 13);
+    let element_b = FieldElement::new(8, 13);
+    assert!(&element_a.pow(-3) == &element_b);
+}
