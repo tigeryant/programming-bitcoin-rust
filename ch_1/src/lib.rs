@@ -1,16 +1,17 @@
 use std::ops::Add;
 use std::ops::Sub;
 use std::ops::Mul;
+use std::ops::Div;
 
 #[derive(Debug)]
 pub struct FieldElement {
-    num: u32,
-    prime: u32
+    num: u128,
+    prime: u128
 }
 
 impl FieldElement {
-    // do we need to change this to allow for negative numbers?
-    pub fn new (num: u32, prime: u32) -> Self {
+    // update to allow for negative numbers?
+    pub fn new (num: u128, prime: u128) -> Self {
         if num >= prime {
             panic!("num not in range 0 to {}", prime - 1);
         }
@@ -72,16 +73,31 @@ impl Mul for &FieldElement {
     }
 }
 
+impl Div for &FieldElement {
+    type Output = FieldElement;
+
+    fn div(self, other: Self) -> FieldElement {
+        if self.prime != other.prime {
+            panic!("Cannot multiply two numbers in different fields")
+        }
+        let num = ((other.num.pow((self.prime - 2).try_into().unwrap())) * self.num) % self.prime;
+        FieldElement {
+            num,
+            prime : self.prime
+        }
+    }
+}
+
 pub trait Pow {
     type Output;
-    fn pow(self, exponent: u32) -> Self::Output;
+    fn pow(self, exponent: u128) -> Self::Output;
 }
 
 impl Pow for &FieldElement {
     type Output = FieldElement;
 
-    fn pow(self, exponent: u32) -> Self::Output {
-        let num = self.num.pow(exponent) % self.prime;
+    fn pow(self, exponent: u128) -> Self::Output {
+        let num = self.num.pow(exponent.try_into().unwrap()) % self.prime;
         FieldElement {
             num,
             prime: self.prime, 

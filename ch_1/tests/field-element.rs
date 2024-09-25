@@ -43,3 +43,11 @@ fn a_pow_3_eq_b() {
     let element_b = FieldElement::new(1, 13);
     assert!(&element_a.pow(3) == &element_b);
 }
+
+#[test]
+fn a_div_b_eq_c() {
+    let element_a = FieldElement::new(7, 19);
+    let element_b = FieldElement::new(5, 19);
+    let element_c = FieldElement::new(9, 19);
+    assert!(&(&element_a / &element_b) == &element_c);
+}
