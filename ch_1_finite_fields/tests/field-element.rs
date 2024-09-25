@@ -1,4 +1,4 @@
-use ch_1::*;
+use ch_1_finite_fields::*;
 
 #[test]
 fn a_equals_itself() {
