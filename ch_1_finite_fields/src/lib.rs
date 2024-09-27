@@ -1,17 +1,22 @@
+pub mod utilities;
+
+use primitive_types::U256;
 use std::ops::Add;
 use std::ops::Sub;
 use std::ops::Mul;
 use std::ops::Div;
 
+use utilities::*;
+
 #[derive(Debug)]
 pub struct FieldElement {
-    num: u128,
-    prime: u128
+    num: U256,
+    prime: U256
 }
 
 impl FieldElement {
     // update to allow for negative numbers?
-    pub fn new (num: u128, prime: u128) -> Self {
+    pub fn new (num: U256, prime: U256) -> Self {
         if num >= prime {
             panic!("num not in range 0 to {}", prime - 1);
         }
@@ -28,6 +33,7 @@ impl PartialEq for &FieldElement {
     }
 }
 
+// TODO update to handle overflows properly
 impl Add for &FieldElement {
     type Output = FieldElement;
 
@@ -80,7 +86,7 @@ impl Div for &FieldElement {
         if self.prime != other.prime {
             panic!("Cannot multiply two numbers in different fields")
         }
-        let num = ((other.num.pow((self.prime - 2).try_into().unwrap())) * self.num) % self.prime;
+        let num = (self.num * (other.num.pow(self.prime - 2))) % self.prime;
         FieldElement {
             num,
             prime : self.prime
@@ -90,19 +96,34 @@ impl Div for &FieldElement {
 
 pub trait Pow {
     type Output;
-    fn pow(self, exponent: i32) -> Self::Output;
+    fn pow(self, exponent: i128) -> Self::Output;
 }
 
 impl Pow for &FieldElement {
     type Output = FieldElement;
 
-    fn pow(self, exponent: i32) -> Self::Output {
-        let p_minus_1: i32 = (self.prime - 1).try_into().unwrap();
-        let pos_n: u32 = (((exponent % p_minus_1) + p_minus_1) % p_minus_1).try_into().unwrap();
-        let num = self.num.pow(pos_n) % self.prime;
+    fn pow(self, mut exponent: i128,) -> Self::Output {
+        let mut base = self.num % self.prime;
+        let prime = self.prime;
+        
+        if exponent < 0 {
+            base = mod_inverse(base, prime).expect("Inverse does not exist");
+            exponent = -exponent;
+        }
+
+        let mut result = U256::one();
+
+        while exponent != 0 {
+            if exponent % 2 == 1 {
+                result = (result * base) % prime;
+            }
+            exponent /= 2;
+            base = (base * base) % prime;
+        }
+
         FieldElement {
-            num,
-            prime: self.prime, 
+            num: result,
+            prime
         }
     }
 }
