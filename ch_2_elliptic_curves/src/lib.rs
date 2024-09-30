@@ -1,36 +1,39 @@
-use std::ops::Add;
+// use std::ops::Add;
+use num_bigint::BigInt;
 
 #[derive(Debug)]
 pub struct Point {
-    a: i128,
-    b: i128,
-    x: Option<i128>,
-    y: Option<i128>
+    x: Option<BigInt>,
+    y: Option<BigInt>,
+    a: BigInt,
+    b: BigInt
 }
 
-/*
 impl Point {
-    pub fn new (x: Option<i128>, y: Option<i128>, a: i128, b: i128) -> Self {
-        // ignore this if statement if x and y are None, when x and y are None this is the point at infinity
-        // if x == None && y == None {
-        //     return Point {
-        //         a,
-        //         b,
-        //         x: None,
-        //         y: None
-        //     };
-        
-        // TODO re-write this - use a match with a pattern to check if x and y are both None
+    pub fn new (x: Option<BigInt>, y: Option<BigInt>, a: BigInt, b: BigInt) -> Self {
+        match (x, y) {
+            (Some(x), Some(y)) => {
+                if y.pow(2) != x.pow(3) + &a * &x + &b {
+                    panic!("({}, {}) is not on the curve", x, y)
+                }
+                Self {
+                    x: Some(x),
+                    y: Some(y),
+                    a,
+                    b
+                }
+            },
+            (None, None) => {
+                Self {
+                    x: None,
+                    y: None,
+                    a,
+                    b
+                }
+            }
+            _ => { panic!("Invalid parameters to Point::new()")}
+        }
 
-        if y.pow(2) != x.pow(3) + a * x + b {
-            panic!("({}, {}) is not on the curve", x, y)
-        }
-        Point {
-            a,
-            b,
-            x,
-            y
-        }
     }
 }
 
@@ -41,6 +44,7 @@ impl PartialEq for &Point {
 }
 
 // implement point addition (Add)
+/*
 impl Add for &Point {
     type Output = Point;
 
@@ -51,4 +55,4 @@ impl Add for &Point {
         }
     }
 }
- */
+*/
