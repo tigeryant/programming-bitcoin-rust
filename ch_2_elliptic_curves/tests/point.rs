@@ -64,4 +64,4 @@ fn a_not_equals_b() {
     assert!(&point_a != &point_b);
 }
 
-// test addition
+// test addition, look at all the add for ideas on how to test
