@@ -1,4 +1,6 @@
 pub mod field_element;
+pub mod mod_exp;
+
 // pub mod point;
 
 // pub fn add(left: u64, right: u64) -> u64 {
