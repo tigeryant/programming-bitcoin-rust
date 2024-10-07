@@ -1,0 +1,10 @@
+[package]
+name = "ecc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+primitive-types = "0.13.1"
+
+[lib]
+doctest = false
