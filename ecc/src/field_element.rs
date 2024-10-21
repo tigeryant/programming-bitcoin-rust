@@ -20,6 +20,10 @@ impl FieldElement {
         // Fermat's Little Theorem: a^(p-1) ≡ 1 (mod p), so a^(p-2) is the inverse
         self.pow(self.prime - 2)
     }
+
+    pub fn is_zero(&self) -> bool {
+        self.num == U256::from(0)
+    }
 }
 
 impl PartialEq for &FieldElement {
@@ -73,7 +77,7 @@ impl Mul for &FieldElement {
     }
 }
 
-impl std::ops::Mul<u32> for &FieldElement {
+impl Mul<u32> for &FieldElement {
     type Output = FieldElement;
 
     fn mul(self, other: u32) -> FieldElement {
