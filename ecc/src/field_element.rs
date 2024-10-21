@@ -1,22 +1,19 @@
-use primitive_types::U256;
-use std::ops::{ Add, Sub, Mul, Div };
 use crate::mod_exp::mod_exp;
+use primitive_types::U256;
+use std::ops::{Add, Div, Mul, Sub};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FieldElement {
     num: U256,
-    prime: U256
+    prime: U256,
 }
 
 impl FieldElement {
-    pub fn new (num: U256, prime: U256) -> Self {
+    pub fn new(num: U256, prime: U256) -> Self {
         if num >= prime {
             panic!("num not in range 0 to {}", prime - 1);
         }
-        FieldElement {
-            num,
-            prime
-        }
+        FieldElement { num, prime }
     }
 
     pub fn mod_inverse(&self) -> FieldElement {
@@ -41,7 +38,7 @@ impl Add for &FieldElement {
         let num = (self.num + other.num) % self.prime;
         FieldElement {
             num,
-            prime : self.prime
+            prime: self.prime,
         }
     }
 }
@@ -56,7 +53,7 @@ impl Sub for &FieldElement {
         let num = (self.num - other.num) % self.prime;
         FieldElement {
             num,
-            prime : self.prime
+            prime: self.prime,
         }
     }
 }
@@ -71,7 +68,21 @@ impl Mul for &FieldElement {
         let num = (self.num * other.num) % self.prime;
         FieldElement {
             num,
-            prime : self.prime
+            prime: self.prime,
+        }
+    }
+}
+
+impl std::ops::Mul<u32> for &FieldElement {
+    type Output = FieldElement;
+
+    fn mul(self, other: u32) -> FieldElement {
+        let p = self.prime;
+        let m = (self.num * other) % p;
+
+        FieldElement {
+            num: m,
+            prime: p
         }
     }
 }
@@ -86,7 +97,10 @@ impl Div for &FieldElement {
         // Division is defined as multiplication by the inverse
         let inverse = other.mod_inverse();
         let num = (self.num * inverse.num) % self.prime;
-        FieldElement { num, prime: self.prime }
+        FieldElement {
+            num,
+            prime: self.prime,
+        }
     }
 }
 
@@ -100,6 +114,9 @@ impl Pow for &FieldElement {
 
     fn pow(self, exp: U256) -> FieldElement {
         let num = mod_exp(self.num, exp, self.prime);
-        FieldElement { num, prime: self.prime }
+        FieldElement {
+            num,
+            prime: self.prime,
+        }
     }
 }

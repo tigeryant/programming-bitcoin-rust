@@ -131,6 +131,7 @@ impl Add for &Point {
 
         // placeholder to satisfy compiler
         // or panic? seeing as there are no other options
+        // use unreachable in future
         self.clone()
         // Point {
 
