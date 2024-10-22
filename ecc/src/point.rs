@@ -4,7 +4,6 @@ use std::ops::{ Add, Mul };
 
 #[derive(Debug, Clone)]
 pub struct Point {
-    // should we hold references to FieldElements instead?
     x: Option<FieldElement>,
     y: Option<FieldElement>,
     a: FieldElement,
@@ -35,7 +34,7 @@ impl Point {
                     b
                 }
             }
-            (None, None) => Self { // point at infinity - use a specific infinity abstraction method here
+            (None, None) => Self {
                 x: None,
                 y: None,
                 a,
@@ -47,6 +46,7 @@ impl Point {
         }
     }
 
+    // Returns the point at infinity
     pub fn new_infinity(&self) -> Self {
         Self {
             x: None,
@@ -89,18 +89,18 @@ impl Add for &Point {
             return self.clone();
         };
 
-        // we can unwrap these as we know they're not none
+        // We can unwrap these as we know they're not none
         let x1 = &self.x.clone().unwrap();
         let y1 = &self.y.clone().unwrap();
         let x2 = &other.x.clone().unwrap();
         let y2 = &other.y.clone().unwrap();
 
-        // handles the vertical line case
+        // Handles the vertical line case
         if x1 == x2 && y1 != y2 {
             return self.new_infinity();
         };
 
-        // point addition for when x1 is not equal to x2
+        // Point addition for when x1 is not equal to x2
         if x1 != x2 {
             let slope = &(y2 - y1) / &(x2 - x1);
             let x3 = &(&slope.pow(U256::from(2)) - x1) - x2;
@@ -114,12 +114,12 @@ impl Add for &Point {
             };
         };
 
-        // point addition for when p1 == p2
-        // The slope is (3 * x1^2 + a) / (2 * y1).
+        // Point addition for when p1 == p2
+        // The slope is (3 * x1^2 + a) / (2 * y1)
         // x3 = slope^^2 - 2x1
         // y3 = slope(x1 - x3) - y1
         if self == other {
-            // handling case when tangent line is vertical
+            // Handling case when tangent line is vertical
             if y1.is_zero()  {
                 return self.new_infinity();
             }
@@ -148,7 +148,7 @@ impl Add for &Point {
 impl Mul<U256> for &Point {
     type Output = Point;
 
-    // scalar multiplication using binary expansion
+    // Scalar multiplication using binary expansion
     fn mul(self, coefficient: U256) -> Self::Output {
         let mut coef = coefficient;
         // current represents the point that’s at the current bit. The first
