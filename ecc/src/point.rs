@@ -1,9 +1,7 @@
 use crate::field_element::*;
 use crate::s256field_element::S256FieldElement;
 use primitive_types::U256;
-use std::ops::{ Add, Mul };
-
-const N: &str = "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141";
+use std::ops::{Add, Mul};
 
 #[derive(Debug, Clone)]
 pub struct Point {
@@ -34,7 +32,7 @@ impl Point {
                     x: Some(x),
                     y: Some(y),
                     a,
-                    b
+                    b,
                 }
             }
             (None, None) => Self {
@@ -59,6 +57,7 @@ impl Point {
         }
     }
 
+    // Move these into the S256Point struct - the Point struct should remain general purpose
     // Creates a new point on the secp256k1 curve
     pub fn new_secp256k1(x: FieldElement, y: FieldElement) -> Self {
         // change a and b to constants or methods
@@ -101,10 +100,12 @@ impl Add for &Point {
         if (&self.a != &other.a) | (&self.b != &other.b) {
             panic!("Points {self:?}, {other:?} are not on the same curve.");
         }
-        if self.x.is_none() { // self is point at infinity or additive identity - create an abstraction for this (is_infinity() method)
+        if self.x.is_none() {
+            // self is point at infinity or additive identity - create an abstraction for this (is_infinity() method)
             return other.clone();
         };
-        if other.x.is_none() { // other is point at infinity or additive identity - create an abstraction for this (is_infinity() method)
+        if other.x.is_none() {
+            // other is point at infinity or additive identity - create an abstraction for this (is_infinity() method)
             return self.clone();
         };
 
@@ -126,10 +127,10 @@ impl Add for &Point {
             let y3 = &(&slope * &(x1 - &x3)) - y1;
 
             return Point {
-                x: Some(x3), 
+                x: Some(x3),
                 y: Some(y3),
                 a: self.a.clone(),
-                b: self.b.clone()
+                b: self.b.clone(),
             };
         };
 
@@ -139,7 +140,7 @@ impl Add for &Point {
         // y3 = slope(x1 - x3) - y1
         if self == other {
             // Handling case when tangent line is vertical
-            if y1.is_zero()  {
+            if y1.is_zero() {
                 return self.new_infinity();
             }
 

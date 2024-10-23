@@ -1,7 +1,7 @@
 use crate::mod_exp::mod_exp;
 use primitive_types::U256;
-use std::ops::{Add, Div, Mul, Sub};
 use std::fmt;
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug, Clone)]
 pub struct FieldElement {
@@ -35,7 +35,11 @@ impl PartialEq for &FieldElement {
 
 impl fmt::Display for FieldElement {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "FieldElement_num_{:064x}_prime_{:064x}", self.num, self.prime)
+        write!(
+            f,
+            "FieldElement_num_{:064x}_prime_{:064x}",
+            self.num, self.prime
+        )
     }
 }
 
@@ -91,10 +95,7 @@ impl Mul<u32> for &FieldElement {
         let p = self.prime;
         let m = (self.num * other) % p;
 
-        FieldElement {
-            num: m,
-            prime: p
-        }
+        FieldElement { num: m, prime: p }
     }
 }
 
