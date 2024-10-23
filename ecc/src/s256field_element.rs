@@ -1,6 +1,7 @@
 use crate::field_element::FieldElement;
 use primitive_types::U256;
 
+#[derive(Debug)]
 pub struct S256FieldElement;
 
 impl S256FieldElement {

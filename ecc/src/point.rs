@@ -1,6 +1,9 @@
 use crate::field_element::*;
+use crate::s256field_element::S256FieldElement;
 use primitive_types::U256;
 use std::ops::{ Add, Mul };
+
+const N: &str = "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141";
 
 #[derive(Debug, Clone)]
 pub struct Point {
@@ -54,6 +57,22 @@ impl Point {
             a: self.a.clone(),
             b: self.b.clone(),
         }
+    }
+
+    // Creates a new point on the secp256k1 curve
+    pub fn new_secp256k1(x: FieldElement, y: FieldElement) -> Self {
+        // change a and b to constants or methods
+        let a = S256FieldElement::new_s256_field(U256::from(0));
+        let b = S256FieldElement::new_s256_field(U256::from(7));
+        Self::new(Some(x), Some(y), a, b)
+    }
+
+    // Get the point at infinity on the secp256k1 curve
+    pub fn new_secp256k1_infinity() -> Self {
+        // change a and b to constants or methods
+        let a = S256FieldElement::new_s256_field(U256::from(0));
+        let b = S256FieldElement::new_s256_field(U256::from(7));
+        Self::new(None, None, a, b)
     }
 }
 

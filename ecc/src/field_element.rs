@@ -1,6 +1,7 @@
 use crate::mod_exp::mod_exp;
 use primitive_types::U256;
 use std::ops::{Add, Div, Mul, Sub};
+use std::fmt;
 
 #[derive(Debug, Clone)]
 pub struct FieldElement {
@@ -29,6 +30,12 @@ impl FieldElement {
 impl PartialEq for &FieldElement {
     fn eq(&self, other: &Self) -> bool {
         self.num == other.num && self.prime == other.prime
+    }
+}
+
+impl fmt::Display for FieldElement {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "FieldElement_num_{:064x}_prime_{:064x}", self.num, self.prime)
     }
 }
 
