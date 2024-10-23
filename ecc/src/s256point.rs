@@ -1,5 +1,3 @@
-use std::ops::Mul;
-
 use crate::point::Point;
 use crate::s256field_element::S256FieldElement;
 use crate::secp256k1_params::S256Params;
@@ -9,7 +7,7 @@ use primitive_types::U256;
 pub struct S256Point;
 
 impl S256Point {
-    fn new_s256_point(x: Option<U256>, y: Option<U256>) -> Point {
+    pub fn new_s256_point(x: Option<U256>, y: Option<U256>) -> Point {
         let a = S256FieldElement::new_s256_field(S256Params::a());
         let b = S256FieldElement::new_s256_field(S256Params::b());
 
