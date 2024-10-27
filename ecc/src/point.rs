@@ -1,5 +1,4 @@
 use crate::field_element::*;
-use crate::s256field_element::S256FieldElement;
 use primitive_types::U256;
 use std::ops::{Add, Mul};
 
@@ -55,23 +54,6 @@ impl Point {
             a: self.a.clone(),
             b: self.b.clone(),
         }
-    }
-
-    // Move these into the S256Point struct - the Point struct should remain general purpose
-    // Creates a new point on the secp256k1 curve
-    pub fn new_secp256k1(x: FieldElement, y: FieldElement) -> Self {
-        // change a and b to constants or methods
-        let a = S256FieldElement::new_s256_field(U256::from(0));
-        let b = S256FieldElement::new_s256_field(U256::from(7));
-        Self::new(Some(x), Some(y), a, b)
-    }
-
-    // Get the point at infinity on the secp256k1 curve
-    pub fn new_secp256k1_infinity() -> Self {
-        // change a and b to constants or methods
-        let a = S256FieldElement::new_s256_field(U256::from(0));
-        let b = S256FieldElement::new_s256_field(U256::from(7));
-        Self::new(None, None, a, b)
     }
 }
 
@@ -170,6 +152,7 @@ impl Mul<U256> for &Point {
 
     // Scalar multiplication using binary expansion
     fn mul(self, coefficient: U256) -> Self::Output {
+        // TODO here we can conditionally set coef to coefficient % N if a, b and p match the params of the secp256k1 curve
         let mut coef = coefficient;
         // current represents the point that’s at the current bit. The first
         // time through the loop it represents 1 × self; the second time it will

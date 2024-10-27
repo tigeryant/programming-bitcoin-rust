@@ -26,6 +26,7 @@ impl S256Point {
     }
 
     // Multiplication by binary expansion. Mods the coefficient by N for efficiency
+    // TODO switch over to the overridden Mul defined on Point when possible
     pub fn multiply(point: &Point, coefficient: U256) -> Point {
         let mut coef = coefficient % S256Params::n();
         let mut current = point.clone();
