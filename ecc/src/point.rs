@@ -49,6 +49,10 @@ impl Point {
         }
     }
 
+    pub fn x(self) -> Option<FieldElement> {
+        self.x
+    }
+
     // Returns the point at infinity
     pub fn new_infinity(&self) -> Self {
         Self {
@@ -82,8 +86,12 @@ impl Point {
         }
     }
 
-    pub fn x(self) -> Option<FieldElement> {
-        self.x
+    // Returns the point in uncompressed SEC format
+    fn sec(self) -> Vec<u8> {
+        let mut result = vec![0x04];
+        result.extend_from_slice(&self.x.unwrap().num().to_big_endian());
+        result.extend_from_slice(&self.y.unwrap().num().to_big_endian());
+        result
     }
 }
 
