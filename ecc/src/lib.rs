@@ -6,3 +6,4 @@ pub mod s256point;
 pub mod secp256k1_params;
 pub mod signature;
 pub mod private_key;
+pub mod base58;
