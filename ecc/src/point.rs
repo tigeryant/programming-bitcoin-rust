@@ -86,12 +86,24 @@ impl Point {
         }
     }
 
-    // Returns the point in uncompressed SEC format
-    fn sec(self) -> Vec<u8> {
-        let mut result = vec![0x04];
-        result.extend_from_slice(&self.x.unwrap().num().to_big_endian());
-        result.extend_from_slice(&self.y.unwrap().num().to_big_endian());
-        result
+    // Returns the point in SEC format
+    fn sec(self, compressed: bool) -> Vec<u8> {
+        if compressed {
+            if self.y.unwrap().num() % 2 == U256::zero() {
+                let mut result = vec![0x02];
+                result.extend_from_slice(&self.x.unwrap().num().to_big_endian());
+                result
+            } else {
+                let mut result = vec![0x03];
+                result.extend_from_slice(&self.x.unwrap().num().to_big_endian());
+                result
+            }
+        } else {
+            let mut result = vec![0x04];
+            result.extend_from_slice(&self.x.unwrap().num().to_big_endian());
+            result.extend_from_slice(&self.y.unwrap().num().to_big_endian());
+            result
+        }
     }
 }
 
