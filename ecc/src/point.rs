@@ -59,7 +59,7 @@ impl Point {
         }
     }
 
-    pub fn verify(point: Point, z: U256, sig: Signature) -> bool {
+    pub fn verify(self: Point, z: U256, sig: Signature) -> bool {
         // Calculate s_inv = s^(N-2) mod N using Fermat's little theorem
         let s_inv = sig.s.pow(S256Params::n() - U256::from(2)) % S256Params::n();
         
@@ -70,10 +70,9 @@ impl Point {
         let v = (sig.r * s_inv) % S256Params::n();
         
         // Calculate u*G + v*P where G is generator point and P is public key point
-        // TODO define the gx and gy methods
         let g = S256Point::new_s256_point(Some(S256Params::gx()), Some(S256Params::gy()));
         let u_g = S256Point::multiply(&g, u);
-        let v_p = S256Point::multiply(&point, v);
+        let v_p = S256Point::multiply(&self, v);
         let total = &u_g + &v_p;
         
         // Verify that the x coordinate equals r
@@ -81,6 +80,10 @@ impl Point {
             Some(x) => x.num() == sig.r,
             None => false
         }
+    }
+
+    pub fn x(self) -> Option<FieldElement> {
+        self.x
     }
 }
 
