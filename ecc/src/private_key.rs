@@ -43,6 +43,7 @@ impl PrivateKey {
         Signature::new(r.num(), s)
     }
 
+    // From RFC 6979
     pub fn deterministic_k(&self, z: U256) -> U256 {
         type HmacSha256 = Hmac<Sha256>;
         

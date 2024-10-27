@@ -29,6 +29,13 @@ impl FieldElement {
     pub fn num(&self) -> U256 {
         self.num
     }
+
+    pub fn sqrt(&self) -> Self {
+        let p = self.prime;
+        let exp = (p + U256::one()) / U256::from(4);
+        let num = self.num.pow(exp);
+        Self::new(num, self.prime)
+    }
 }
 
 impl PartialEq for &FieldElement {

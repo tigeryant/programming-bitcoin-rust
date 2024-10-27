@@ -87,7 +87,7 @@ impl Point {
     }
 
     // Returns the point in SEC format
-    fn sec(self, compressed: bool) -> Vec<u8> {
+    pub fn sec(self, compressed: bool) -> Vec<u8> {
         if compressed {
             if self.y.unwrap().num() % 2 == U256::zero() {
                 let mut result = vec![0x02];
@@ -104,6 +104,41 @@ impl Point {
             result.extend_from_slice(&self.y.unwrap().num().to_big_endian());
             result
         }
+    }
+
+    pub fn parse(self, sec_bin: Vec<u8>) -> Self {
+        if sec_bin[0] == 4 {
+            let x = Some(U256::from_big_endian(&sec_bin[1..33]));
+            let y = Some(U256::from_big_endian(&sec_bin[33..65]));
+            return S256Point::new_s256_point(x, y);
+        }
+        
+        let is_even = sec_bin[0] == 2u8;
+        let x_field = FieldElement::new(
+            U256::from_big_endian(&sec_bin[1..]),
+            S256Params::p()
+        );
+        
+        // Calculate right side of y^2 = x^3 + 7
+        let alpha = &x_field.pow(U256::from(3)) + &FieldElement::new(S256Params::b(), S256Params::p());
+        let beta = alpha.sqrt();
+        
+        let (even_beta, odd_beta) = if beta.num() % 2 == U256::zero() {
+            (
+                beta.clone(),
+                FieldElement::new(S256Params::p() - beta.num(), S256Params::p())
+            )
+        } else {
+            (
+                FieldElement::new(S256Params::p() - beta.num(), S256Params::p()),
+                beta.clone()
+            )
+        };
+        
+        S256Point::new_s256_point(
+            Some(x_field.num()),
+            Some(if is_even { even_beta.num() } else { odd_beta.num() })
+        )
     }
 }
 
