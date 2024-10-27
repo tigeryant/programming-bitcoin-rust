@@ -2,6 +2,8 @@ use primitive_types::U256;
 use crate::{point::Point, signature::Signature};
 use crate::secp256k1_params::S256Params;
 use crate::s256point::S256Point;
+use hmac::{Hmac, Mac};
+use sha2::Sha256;
 
 pub struct PrivateKey {
     secret: U256,
@@ -19,7 +21,8 @@ impl PrivateKey {
 
     pub fn sign(self, z: U256) -> Signature {
         // Generate random k between 0 and N
-        let k = U256::from_dec_str("45").unwrap(); // TODO: Replace with cryptographic random number generation
+        // Should be using cryptographic randomness here
+        let k = self.deterministic_k(z);
         
         // Calculate r = (k*G).x
         let g = S256Params::g();
@@ -38,5 +41,61 @@ impl PrivateKey {
         }
         
         Signature::new(r.num(), s)
+    }
+
+    pub fn deterministic_k(&self, z: U256) -> U256 {
+        type HmacSha256 = Hmac<Sha256>;
+        
+        // Initialize k and v
+        let mut k = vec![0u8; 32];
+        let mut v = vec![1u8; 32];
+        
+        // Adjust z if needed
+        let mut z = z;
+        if z > S256Params::n() {
+            z -= S256Params::n();
+        }
+        
+        // Convert values to bytes
+        let z_bytes = z.to_big_endian();
+        let secret_bytes = self.secret.to_big_endian();
+        
+        // First round
+        let mut hmac = HmacSha256::new_from_slice(&k).unwrap();
+        hmac.update(&[&v[..], &[0u8], &secret_bytes[..], &z_bytes[..]].concat());
+        k = hmac.finalize().into_bytes().to_vec();
+        
+        let mut hmac = HmacSha256::new_from_slice(&k).unwrap();
+        hmac.update(&v);
+        v = hmac.finalize().into_bytes().to_vec();
+        
+        // Second round
+        let mut hmac = HmacSha256::new_from_slice(&k).unwrap();
+        hmac.update(&[&v[..], &[1u8], &secret_bytes[..], &z_bytes[..]].concat());
+        k = hmac.finalize().into_bytes().to_vec();
+        
+        let mut hmac = HmacSha256::new_from_slice(&k).unwrap();
+        hmac.update(&v);
+        v = hmac.finalize().into_bytes().to_vec();
+        
+        // Generate k
+        loop {
+            let mut hmac = HmacSha256::new_from_slice(&k).unwrap();
+            hmac.update(&v);
+            v = hmac.finalize().into_bytes().to_vec();
+            
+            let candidate = U256::from_big_endian(&v);
+            if candidate >= U256::one() && candidate < S256Params::n() {
+                return candidate;
+            }
+            
+            let mut hmac = HmacSha256::new_from_slice(&k).unwrap();
+            hmac.update(&[&v[..], &[0u8]].concat());
+            k = hmac.finalize().into_bytes().to_vec();
+            
+            let mut hmac = HmacSha256::new_from_slice(&k).unwrap();
+            hmac.update(&v);
+            v = hmac.finalize().into_bytes().to_vec();
+        }
     }
 }
