@@ -1,6 +1,9 @@
 use crate::field_element::*;
 use primitive_types::U256;
 use std::ops::{Add, Mul};
+use crate::secp256k1_params::S256Params;
+use crate::s256point::S256Point;
+use crate::signature::Signature;
 
 #[derive(Debug, Clone)]
 pub struct Point {
@@ -53,6 +56,30 @@ impl Point {
             y: None,
             a: self.a.clone(),
             b: self.b.clone(),
+        }
+    }
+
+    pub fn verify(point: Point, z: U256, sig: Signature) -> bool {
+        // Calculate s_inv = s^(N-2) mod N using Fermat's little theorem
+        let s_inv = sig.s.pow(S256Params::n() - U256::from(2)) % S256Params::n();
+        
+        // Calculate u = z * s_inv mod N
+        let u = (z * s_inv) % S256Params::n();
+        
+        // Calculate v = r * s_inv mod N
+        let v = (sig.r * s_inv) % S256Params::n();
+        
+        // Calculate u*G + v*P where G is generator point and P is public key point
+        // TODO define the gx and gy methods
+        let g = S256Point::new_s256_point(Some(S256Params::gx()), Some(S256Params::gy()));
+        let u_g = S256Point::multiply(&g, u);
+        let v_p = S256Point::multiply(&point, v);
+        let total = &u_g + &v_p;
+        
+        // Verify that the x coordinate equals r
+        match total.x {
+            Some(x) => x.num() == sig.r,
+            None => false
         }
     }
 }

@@ -1,7 +1,7 @@
+use primitive_types::U256;
 use crate::point::Point;
 use crate::s256field_element::S256FieldElement;
 use crate::secp256k1_params::S256Params;
-use primitive_types::U256;
 
 #[derive(Debug)]
 pub struct S256Point;

@@ -25,6 +25,10 @@ impl FieldElement {
     pub fn is_zero(&self) -> bool {
         self.num == U256::from(0)
     }
+
+    pub fn num(&self) -> U256 {
+        self.num
+    }
 }
 
 impl PartialEq for &FieldElement {

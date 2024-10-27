@@ -34,4 +34,12 @@ impl S256Params {
         let y = U256::from_str_radix(GY, 16).unwrap();
         S256Point::new_s256_point(Some(x), Some(y))
     }
+
+    pub fn gx() -> U256 {
+        U256::from_str_radix(GX, 16).unwrap()
+    }
+
+    pub fn gy() -> U256 {
+        U256::from_str_radix(GY, 16).unwrap()
+    }
 }
