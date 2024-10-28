@@ -1,6 +1,8 @@
 // put this in a utils directory
 use primitive_types::U256;
 
+use crate::hash256::hash256;
+
 const BASE58_ALPHABET: &str = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
 pub fn encode_base58(bytes: &[u8]) -> String {
@@ -28,4 +30,12 @@ pub fn encode_base58(bytes: &[u8]) -> String {
         result.push(BASE58_ALPHABET.chars().next().unwrap());
     }
     result.chars().rev().collect()
+}
+
+// Encode bytes with a checksum
+pub fn encode_base58_checksum(bytes: &[u8]) -> String {
+    let mut result = bytes.to_vec();
+    let hash = hash256(bytes);
+    result.extend_from_slice(&hash[0..4]);
+    encode_base58(&result)
 }

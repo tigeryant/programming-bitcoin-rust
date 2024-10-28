@@ -7,6 +7,7 @@ edition = "2021"
 primitive-types = "0.13.1"
 hmac = "0.12"
 sha2 = "0.10"
+ripemd = "0.1"
 
 [lib]
 doctest = false

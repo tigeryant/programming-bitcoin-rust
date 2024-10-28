@@ -7,3 +7,5 @@ pub mod secp256k1_params;
 pub mod signature;
 pub mod private_key;
 pub mod base58;
+pub mod hash256;
+pub mod hash160;
