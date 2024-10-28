@@ -1,4 +1,5 @@
 use primitive_types::U256;
+use crate::base58::encode_base58_checksum;
 use crate::{point::Point, signature::Signature};
 use crate::secp256k1_params::S256Params;
 use crate::s256point::S256Point;
@@ -98,5 +99,24 @@ impl PrivateKey {
             hmac.update(&v);
             v = hmac.finalize().into_bytes().to_vec();
         }
+    }
+
+    // Returns private key in Wallet Import Format (WIF)
+    pub fn wif(&self, compressed: bool, testnet: bool) -> String {
+        // Convert secret to big-endian bytes
+        let secret_bytes = self.secret.to_big_endian();
+        
+        // Set prefix based on network
+        let prefix = if testnet { vec![0xef] } else { vec![0x80] };
+        
+        // Set suffix based on compression
+        let suffix = if compressed { vec![0x01] } else { vec![] };
+        
+        // Combine all parts
+        let mut result = prefix;
+        result.extend_from_slice(&secret_bytes);
+        result.extend_from_slice(&suffix);
+        
+        encode_base58_checksum(&result)
     }
 }

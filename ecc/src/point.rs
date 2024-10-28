@@ -88,7 +88,7 @@ impl Point {
         }
     }
 
-    // Returns the point in SEC format
+    // Returns the point in Standards for Efficient Cryptography (SEC) format
     pub fn sec(self, compressed: bool) -> Vec<u8> {
         if compressed {
             if self.y.unwrap().num() % 2 == U256::zero() {

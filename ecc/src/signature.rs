@@ -14,6 +14,7 @@ impl Signature {
         }
     }
 
+    // Returns the signature in Distinguished Encoding Rules
     pub fn der(&self) -> Vec<u8> {
         // Convert r to big-endian bytes and trim leading zeros
         let mut rbin: Vec<u8> = self.r.to_big_endian().to_vec();
