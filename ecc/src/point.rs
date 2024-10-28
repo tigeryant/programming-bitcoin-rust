@@ -1,9 +1,11 @@
+use crate::base58::encode_base58_checksum;
 use crate::field_element::*;
 use primitive_types::U256;
 use std::ops::{Add, Mul};
 use crate::secp256k1_params::S256Params;
 use crate::s256point::S256Point;
 use crate::signature::Signature;
+use crate::hash160;
 
 #[derive(Debug, Clone)]
 pub struct Point {
@@ -139,6 +141,21 @@ impl Point {
             Some(x_field.num()),
             Some(if is_even { even_beta.num() } else { odd_beta.num() })
         )
+    }
+
+    fn hash160(self, compressed: bool) -> Vec<u8> {
+        hash160::hash160(&self.sec(compressed))
+    }
+
+    fn address(self, compressed: bool, testnet: bool) -> String {
+        let h160 = self.hash160(compressed);
+        let mut prefix_and_h160 = if testnet {
+            vec![0x6f]
+        } else {
+            vec![0x00]
+        };
+        prefix_and_h160.extend_from_slice(&h160);
+        encode_base58_checksum(&prefix_and_h160)
     }
 }
 
