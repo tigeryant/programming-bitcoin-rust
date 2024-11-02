@@ -70,21 +70,6 @@ impl Add for &FieldElement {
     }
 }
 
-// impl Sub for &FieldElement {
-//     type Output = FieldElement;
-
-//     fn sub(self, other: Self) -> FieldElement {
-//         if self.prime != other.prime {
-//             panic!("Cannot subtract two numbers in different fields")
-//         }
-//         let num = (self.num - other.num) % self.prime;
-//         FieldElement {
-//             num,
-//             prime: self.prime,
-//         }
-//     }
-// }
-
 impl Sub for &FieldElement {
     type Output = FieldElement;
 
@@ -115,23 +100,6 @@ impl Sub for &FieldElement {
     }
 }
 
-/*
-impl Mul for &FieldElement {
-    type Output = FieldElement;
-
-    fn mul(self, other: Self) -> FieldElement {
-        if self.prime != other.prime {
-            panic!("Cannot multiply two numbers in different fields")
-        }
-        let num = (self.num * other.num) % self.prime;
-        FieldElement {
-            num,
-            prime: self.prime,
-        }
-    }
-}
- */
-
 impl Mul for &FieldElement {
     type Output = FieldElement;
 
@@ -158,20 +126,6 @@ impl Mul for &FieldElement {
     }
 }
 
-/*
-impl Mul<u32> for &FieldElement {
-    type Output = FieldElement;
-
-    fn mul(self, other: u32) -> FieldElement {
-        let p = self.prime;
-        // investigate how mulitplication handles overflows
-        // look at the ru256 implementation of mul and add
-        let m = (self.num * other) % p;
-        FieldElement { num: m, prime: p }
-    }
-}
-*/
-
 impl Mul<u32> for &FieldElement {
     type Output = FieldElement;
 
@@ -186,23 +140,6 @@ impl Mul<u32> for &FieldElement {
         FieldElement { num, prime: self.prime }
     }
 }
-
-// impl Div for &FieldElement {
-//     type Output = FieldElement;
-
-//     fn div(self, other: Self) -> FieldElement {
-//         if self.prime != other.prime {
-//             panic!("Cannot divide two numbers in different fields");
-//         }
-//         // Division is defined as multiplication by the inverse
-//         let inverse = other.mod_inverse();
-//         let num = (self.num * inverse.num) % self.prime;
-//         FieldElement {
-//             num,
-//             prime: self.prime,
-//         }
-//     }
-// }
 
 impl Div for &FieldElement {
     type Output = FieldElement;
