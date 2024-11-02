@@ -1,6 +1,7 @@
 use ecc::{field_element::*, mod_exp::mod_exp, private_key::PrivateKey, secp256k1_params::S256Params};
 use primitive_types::U256;
 use ecc::point::Point;
+use ecc::rng;
 
 #[test]
 fn a_equals_itself() {
@@ -78,8 +79,19 @@ fn p_parameter() {
 }
 
 #[test]
-fn new_generator_point() {
-    let secret = U256::from(12345); // Use proper random number generation in production
+fn gx_cubed() {
+    let base = S256Params::gx();
+    let exp = U256::from_str_radix("0x3", 16).unwrap();
+    let modulus = S256Params::p();
+
+    let expected = U256::from_str_radix("0x4866d6a5ab41ab2c6bcc57ccd3735da5f16f80a548e5e20a44e4e9b8118c26eb", 16).unwrap();
+    let output = mod_exp(base, exp, modulus);
+    assert_eq!(output, expected);
+}
+
+#[test]
+fn new_insecure_address() {
+    let secret = U256::from(12345); // Use cryptographically random number generation in production
     let private_key = PrivateKey::new(secret);
 
     // Get public key point from private key
@@ -93,12 +105,20 @@ fn new_generator_point() {
 }
 
 #[test]
-fn gx_cubed() {
-    let base = S256Params::gx();
-    let exp = U256::from_str_radix("0x3", 16).unwrap();
-    let modulus = S256Params::p();
+fn new_address() {
+    let secret = rng::get_random_u256();
+    let private_key = PrivateKey::new(secret);
 
-    let expected = U256::from_str_radix("0x4866d6a5ab41ab2c6bcc57ccd3735da5f16f80a548e5e20a44e4e9b8118c26eb", 16).unwrap();
-    let output = mod_exp(base, exp, modulus);
-    assert_eq!(output, expected);
+    // Get public key point from private key
+    let public_key = private_key.point();
+
+    // Get testnet address (compressed format)
+    let address = public_key.address(true, true); // compressed=true, testnet=true
+    println!("{address}");
+}
+
+#[test]
+fn random_u256() {
+    let random_number = rng::get_random_u256();
+    println!("Random U256: {random_number}");
 }
