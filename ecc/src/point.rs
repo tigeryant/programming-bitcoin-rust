@@ -147,7 +147,7 @@ impl Point {
         hash160::hash160(&self.sec(compressed))
     }
 
-    fn address(self, compressed: bool, testnet: bool) -> String {
+    pub fn address(self, compressed: bool, testnet: bool) -> String {
         let h160 = self.hash160(compressed);
         let mut prefix_and_h160 = if testnet {
             vec![0x6f]

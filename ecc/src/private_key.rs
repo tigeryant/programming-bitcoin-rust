@@ -12,12 +12,16 @@ pub struct PrivateKey {
 }
 
 impl PrivateKey {
-    pub fn new(self, secret: U256) -> PrivateKey {
+    pub fn new(secret: U256) -> PrivateKey {
         let g = S256Params::g();
         Self {
             secret,
             point: S256Point::multiply(&g, secret)
         }
+    }
+
+    pub fn point(self) -> Point {
+        self.point
     }
 
     pub fn sign(self, z: U256) -> Signature {

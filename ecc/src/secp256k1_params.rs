@@ -2,7 +2,7 @@ use primitive_types::U256;
 use crate::s256point::S256Point;
 use crate::point::Point;
 
-const P: &str = "fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f";
+const P: &str = "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f";
 const N: &str = "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141";
 const A: &str = "0x0";
 const B: &str = "0x7";
