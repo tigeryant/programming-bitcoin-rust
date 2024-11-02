@@ -1,2 +1,17 @@
 # programming-bitcoin-rust
-This repository contains my solutions to the exercises in the [Programming Bitcoin](https://www.amazon.com/Programming-Bitcoin-Learn-Program-Scratch/dp/1492031496) book, by Jimmy Song. All the exercises in the book are written in Python, so I will be porting the template code to Rust, and then writing my solution in Rust. As a new Rust programmer, I hope this will provide an opportunity to combine a long time interest of mine (Bitcoin), with a programming language that's new to me.
+This repository contains solutions to the exercises in the [Programming Bitcoin](https://www.amazon.com/Programming-Bitcoin-Learn-Program-Scratch/dp/1492031496) book, by Jimmy Song. The book shows how to build a Bitcoin library from scratch, starting with fundamental cryptographic primitives, and then implementing Bitcoin-specific functionality like transactions, script and blocks. The exercises in the book are written in Python, so the code has been ported to Rust with the equivalent functionality.
+
+## Progress Checklist
+- [x] Chapter 1: Finite Fields
+- [x] Chapter 2: Elliptic Curves
+- [x] Chapter 3: Elliptic Curve Cryptography
+- [x] Chapter 4: Serialization
+- [ ] Chapter 5: Transactions
+- [ ] Chapter 6: Script
+- [ ] Chapter 7: Transaction Creation and Validation
+- [ ] Chapter 8: Pay to Script Hash
+- [ ] Chapter 9: Blocks
+- [ ] Chapter 10: Networking
+- [ ] Chapter 11: Simplified Payment Verification
+- [ ] Chapter 12: Bloom Filters
+- [ ] Chapter 13: Segwit
