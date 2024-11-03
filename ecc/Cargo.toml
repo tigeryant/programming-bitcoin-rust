@@ -10,6 +10,7 @@ sha2 = "0.10"
 ripemd = "0.1"
 num-bigint = "0.4"
 rand = "0.8"
+hex = "0.4"
 
 [lib]
 doctest = false
