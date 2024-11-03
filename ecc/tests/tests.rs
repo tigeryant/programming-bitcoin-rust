@@ -2,6 +2,7 @@ use ecc::{field_element::*, mod_exp::mod_exp, private_key::PrivateKey, secp256k1
 use primitive_types::U256;
 use ecc::point::Point;
 use ecc::rng;
+use ecc::tx;
 
 #[test]
 fn a_equals_itself() {
@@ -121,4 +122,13 @@ fn new_address() {
 fn random_u256() {
     let random_number = rng::get_random_u256();
     println!("Random U256: {random_number}");
+}
+
+#[test]
+fn tx_parse() {
+    let bytes: Vec<u8> = vec![1, 0, 0, 0];
+    let version_output = tx::Tx::parse(bytes);
+    dbg!(version_output);
+    let expected = 1;
+    assert_eq!(version_output, expected);
 }

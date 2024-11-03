@@ -51,4 +51,13 @@ impl Tx {
         result
     }
 
+    pub fn parse(serialization: Vec<u8>) -> u32 {
+        u32::from_le_bytes([
+            serialization[0],
+            serialization[1], 
+            serialization[2],
+            serialization[3]
+        ])
+    }
+
 }
