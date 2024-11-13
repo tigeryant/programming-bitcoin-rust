@@ -1,6 +1,7 @@
 use crate::hash256::hash256;
 use crate::varint::{ read_varint, encode_varint };
 use crate::tx_input::TxInput;
+use crate::tx_output::TxOutput;
 use std::io::{Cursor, Read};
 
 pub struct Tx {
@@ -64,22 +65,31 @@ impl Tx {
         stream.read_exact(&mut buffer).unwrap();
         let version = u32::from_le_bytes(buffer);
 
-        let varint = read_varint(stream);
-        // depending on the result, (assuming it's Ok(u64)), we know how many inputs we need to parse
+        // Parse inputs
+        // Do proper error handling
+        let input_count = read_varint(stream).unwrap();
         
-        // for now, let's assume it's a u64 with a value of 1 - that is, there is a single input
-        let input_count: u64 = 1;
         let tx_ins: Vec<TxInput> = (0..input_count)
             .map(|_| {
-                // for each element in the range, return a TxInput by calling TxInput::parse()
                 TxInput::parse(stream)
+            })
+            .collect();
+
+        // Parse outputs
+        // Do proper error handling
+        let output_count = read_varint(stream).unwrap();
+        
+        let tx_outs: Vec<TxOutput> = (0..output_count)
+            .map(|_| {
+                TxOutput::parse(stream)
             })
             .collect();
 
         todo!();
         // Self {
         //     version,
-        //     tx_ins
+        //     tx_ins,
+        //     tx_outs
         // }
     }
 

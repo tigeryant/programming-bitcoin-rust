@@ -1,4 +1,3 @@
-// may need to import Read here too
 use std::io::{Cursor, Read};
 
 pub struct TxInput {
