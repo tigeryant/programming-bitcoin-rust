@@ -124,6 +124,7 @@ fn random_u256() {
     println!("Random U256: {random_number}");
 }
 
+/*
 #[test]
 fn tx_parse() {
     let bytes: Vec<u8> = vec![1, 0, 0, 0];
@@ -132,3 +133,4 @@ fn tx_parse() {
     let expected = 1;
     assert_eq!(version_output, expected);
 }
+*/

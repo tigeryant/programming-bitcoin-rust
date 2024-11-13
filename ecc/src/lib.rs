@@ -11,5 +11,5 @@ pub mod hash256;
 pub mod hash160;
 pub mod rng;
 pub mod tx;
-pub mod helper;
+pub mod varint;
 pub mod tx_input;
