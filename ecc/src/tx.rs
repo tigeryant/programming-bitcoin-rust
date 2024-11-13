@@ -85,11 +85,18 @@ impl Tx {
             })
             .collect();
 
+        // parse the locktime
+        // 4 bytes
+        let mut buffer = [0u8; 4];
+        stream.read_exact(&mut buffer).unwrap();
+        let locktime = u32::from_le_bytes(buffer);
+
         todo!();
         // Self {
         //     version,
         //     tx_ins,
-        //     tx_outs
+        //     tx_outs,
+        //     locktime
         // }
     }
 
