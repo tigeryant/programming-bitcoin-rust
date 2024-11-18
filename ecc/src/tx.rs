@@ -110,4 +110,17 @@ impl Tx {
     // pub fn serialize(&self) {
     // }
 
+    pub fn fee(&self) -> u64 {
+        let input_total: u64 = self.tx_ins
+            .iter()
+            .map(|input| input.value())
+            .sum();
+
+        let output_total: u64 = self.tx_outs
+            .iter()
+            .map(|output| output.amount)
+            .sum();
+
+        input_total - output_total
+    }
 }
