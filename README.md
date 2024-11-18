@@ -6,7 +6,7 @@ This repository contains solutions to the exercises in the [Programming Bitcoin]
 - [x] Chapter 2: Elliptic Curves
 - [x] Chapter 3: Elliptic Curve Cryptography
 - [x] Chapter 4: Serialization
-- [ ] Chapter 5: Transactions
+- [x] Chapter 5: Transactions
 - [ ] Chapter 6: Script
 - [ ] Chapter 7: Transaction Creation and Validation
 - [ ] Chapter 8: Pay to Script Hash
