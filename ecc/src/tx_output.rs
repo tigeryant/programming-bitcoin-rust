@@ -2,6 +2,7 @@ use std::io::{Cursor, Read};
 
 use crate::varint::read_varint;
 
+#[derive(Clone)]
 pub struct TxOutput {
     amount: u64,
     script_pubkey: Option<String>

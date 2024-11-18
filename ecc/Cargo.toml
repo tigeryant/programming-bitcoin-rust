@@ -11,6 +11,7 @@ ripemd = "0.1"
 num-bigint = "0.4"
 rand = "0.8"
 hex = "0.4"
+reqwest = {version= "0.12.9", features = ["blocking"]}
 
 [lib]
 doctest = false

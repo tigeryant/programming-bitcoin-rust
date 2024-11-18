@@ -1,5 +1,6 @@
 use std::io::{Cursor, Read};
 
+#[derive(Clone)]
 pub struct TxInput {
     prev_tx_id: [u8; 32],
     prev_index: [u8; 4],

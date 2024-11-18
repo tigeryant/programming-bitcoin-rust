@@ -4,16 +4,17 @@ use crate::tx_input::TxInput;
 use crate::tx_output::TxOutput;
 use std::io::{Cursor, Read};
 
+#[derive(Clone)]
 pub struct Tx {
     version: u32,
     tx_ins: Vec<TxInput>,
-    tx_outs: Vec<u32>,
+    tx_outs: Vec<TxOutput>,
     locktime: u32,
     testnet: bool
 }
 
 impl Tx {
-    pub fn new(version: u32, tx_ins: Vec<TxInput>, tx_outs: Vec<u32>, locktime: u32, testnet: bool) -> Self {
+    pub fn new(version: u32, tx_ins: Vec<TxInput>, tx_outs: Vec<TxOutput>, locktime: u32, testnet: bool) -> Self {
         Self {
             version,
             tx_ins,
@@ -52,7 +53,11 @@ impl Tx {
         }
         
         // Serialize tx_outs
-        result.extend(self.tx_outs.iter().flat_map(|tx_out| tx_out.to_le_bytes()));
+        let outputs = self.tx_outs.clone();
+        result.extend_from_slice(&encode_varint(outputs.len() as u64));
+        for output in outputs {
+            result.extend(output.serialize());
+        }
         
         // Serialize locktime (4 bytes, little endian)
         result.extend_from_slice(&self.locktime.to_le_bytes());
@@ -91,13 +96,14 @@ impl Tx {
         stream.read_exact(&mut buffer).unwrap();
         let locktime = u32::from_le_bytes(buffer);
 
-        todo!();
-        // Self {
-        //     version,
-        //     tx_ins,
-        //     tx_outs,
-        //     locktime
-        // }
+        let testnet = true; // placeholder
+        Self {
+            version,
+            tx_ins,
+            tx_outs,
+            locktime,
+            testnet 
+        }
     }
 
     // TODO write serialize method (see p99)
