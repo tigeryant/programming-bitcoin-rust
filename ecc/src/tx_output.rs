@@ -25,4 +25,15 @@ impl TxOutput {
             script_pubkey
         }
     }
+
+    // write the serialize method
+    // TODO finish this later
+    pub fn serialize(&self) -> Vec<u8> {
+        let result = self.amount.to_le_bytes();
+        // TODO come back to this - we need a script struct with serialization first
+        // serialize the script_pubkey and concat that to result
+        // return result
+        todo!()
+        // result
+    }
 }

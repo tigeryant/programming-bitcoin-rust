@@ -40,6 +40,7 @@ impl TxInput {
     }
 
     /// Returns the byte serialization of the transaction input
+    /// TODO complete later
     pub fn serialize(&self) -> Vec<u8> {
         let mut result = Vec::new();
 

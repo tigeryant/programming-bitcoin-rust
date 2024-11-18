@@ -100,4 +100,8 @@ impl Tx {
         // }
     }
 
+    // TODO write serialize method (see p99)
+    // pub fn serialize(&self) {
+    // }
+
 }
