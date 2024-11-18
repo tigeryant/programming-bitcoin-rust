@@ -5,10 +5,10 @@ use crate::tx_output::TxOutput;
 use std::io::{Cursor, Read};
 
 #[derive(Clone)]
-pub struct Tx {
+pub struct Tx { // use getter methods rather than setting these methods to public
     version: u32,
     tx_ins: Vec<TxInput>,
-    tx_outs: Vec<TxOutput>,
+    pub tx_outs: Vec<TxOutput>,
     locktime: u32,
     testnet: bool
 }

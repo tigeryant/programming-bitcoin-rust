@@ -3,9 +3,9 @@ use std::io::{Cursor, Read};
 use crate::varint::read_varint;
 
 #[derive(Clone)]
-pub struct TxOutput {
-    amount: u64,
-    script_pubkey: Option<String>
+pub struct TxOutput { // use getter methods rather than setting these fields to public
+    pub amount: u64,
+    pub script_pubkey: Option<String>
 }
 
 impl TxOutput {

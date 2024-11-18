@@ -35,4 +35,11 @@ impl TxFetcher {
 
         Ok(cache.get(tx_id).unwrap().clone())
     }
+
+    /// Builds the TxFetcher
+    pub fn build() -> TxFetcher {
+        TxFetcher {
+            cache: RefCell::new(HashMap::new())
+        }
+    }
 }
