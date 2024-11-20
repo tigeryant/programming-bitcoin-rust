@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, io::Cursor};
 use reqwest;
-use crate::tx::Tx;
+use crate::transactions::tx::Tx;
 
 pub struct TxFetcher {
     cache: RefCell<HashMap<String, Tx>>,

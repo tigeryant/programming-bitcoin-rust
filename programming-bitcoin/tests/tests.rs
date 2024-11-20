@@ -1,10 +1,11 @@
 use std::io::Cursor;
 
-use ecc::tx::Tx;
+use programming_bitcoin::transactions::tx::Tx;
 use ecc::{field_element::*, mod_exp::mod_exp, private_key::PrivateKey, secp256k1_params::S256Params};
 use primitive_types::U256;
 use ecc::point::Point;
-use ecc::rng;
+use programming_bitcoin::utils::rng;
+use programming_bitcoin::ecc;
 
 #[test]
 fn a_equals_itself() {

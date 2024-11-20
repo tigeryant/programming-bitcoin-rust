@@ -1,6 +1,8 @@
 use std::io::{Cursor, Read};
 
-use crate::{script::Script, tx::Tx, tx_fetcher::TxFetcher};
+use crate::{script::btc_script::Script, transactions::tx_fetcher::TxFetcher};
+
+use super::tx::Tx;
 
 #[derive(Clone, Debug)]
 pub struct TxInput {

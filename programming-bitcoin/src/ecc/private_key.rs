@@ -1,8 +1,8 @@
 use primitive_types::U256;
-use crate::base58::encode_base58_checksum;
-use crate::{point::Point, signature::Signature};
-use crate::secp256k1_params::S256Params;
-use crate::s256point::S256Point;
+use crate::utils::base58::encode_base58_checksum;
+use crate::{ecc::point::Point, ecc::signature::Signature};
+use crate::ecc::secp256k1_params::S256Params;
+use crate::ecc::s256point::S256Point;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 

@@ -1,6 +1,6 @@
 use primitive_types::U256;
-use crate::s256point::S256Point;
-use crate::point::Point;
+use crate::ecc::s256point::S256Point;
+use crate::ecc::point::Point;
 
 const P: &str = "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f";
 const N: &str = "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141";
@@ -43,3 +43,4 @@ impl S256Params {
         U256::from_str_radix(GY, 16).unwrap()
     }
 }
+

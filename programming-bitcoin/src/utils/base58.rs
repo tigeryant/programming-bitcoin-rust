@@ -1,7 +1,6 @@
-// put this in a utils directory
 use primitive_types::U256;
 
-use crate::hash256::hash256;
+use crate::utils::hash256::hash256;
 
 const BASE58_ALPHABET: &str = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 

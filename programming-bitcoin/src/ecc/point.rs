@@ -1,11 +1,11 @@
-use crate::base58::encode_base58_checksum;
-use crate::field_element::*;
+use crate::utils::base58::encode_base58_checksum;
+use crate::ecc::field_element::*;
 use primitive_types::U256;
 use std::ops::{Add, Mul};
-use crate::secp256k1_params::S256Params;
-use crate::s256point::S256Point;
-use crate::signature::Signature;
-use crate::hash160;
+use crate::ecc::secp256k1_params::S256Params;
+use crate::ecc::s256point::S256Point;
+use crate::ecc::signature::Signature;
+use crate::utils::hash160;
 
 #[derive(Debug, Clone)]
 pub struct Point {

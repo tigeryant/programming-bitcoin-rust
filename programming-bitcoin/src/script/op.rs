@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use crate::hash256::hash256;
-use crate::hash160::hash160;
+use crate::utils::hash256::hash256;
+use crate::utils::hash160::hash160;
 
 pub enum OpFunction {
     StackOp(fn(&mut Vec<Vec<u8>>) -> bool)

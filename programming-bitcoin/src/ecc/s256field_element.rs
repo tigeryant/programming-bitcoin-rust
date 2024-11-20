@@ -1,5 +1,5 @@
-use crate::field_element::FieldElement;
-use crate::secp256k1_params::S256Params;
+use crate::ecc::field_element::FieldElement;
+use crate::ecc::secp256k1_params::S256Params;
 use primitive_types::U256;
 
 #[derive(Debug)]

@@ -1,4 +1,4 @@
-use crate::mod_exp::mod_exp;
+use crate::ecc::mod_exp::mod_exp;
 use num_bigint::BigUint;
 use primitive_types::U256;
 use std::fmt;

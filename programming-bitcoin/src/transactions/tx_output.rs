@@ -1,6 +1,6 @@
 use std::io::{Cursor, Read};
 
-use crate::script::Script;
+use crate::script::btc_script::Script;
 
 #[derive(Clone, Debug)]
 pub struct TxOutput {

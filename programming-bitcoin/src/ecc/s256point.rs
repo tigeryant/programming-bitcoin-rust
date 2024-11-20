@@ -1,7 +1,7 @@
 use primitive_types::U256;
-use crate::point::Point;
-use crate::s256field_element::S256FieldElement;
-use crate::secp256k1_params::S256Params;
+use crate::ecc::point::Point;
+use crate::ecc::s256field_element::S256FieldElement;
+use crate::ecc::secp256k1_params::S256Params;
 
 #[derive(Debug)]
 pub struct S256Point;
@@ -43,4 +43,3 @@ impl S256Point {
         result
     }
 }
-

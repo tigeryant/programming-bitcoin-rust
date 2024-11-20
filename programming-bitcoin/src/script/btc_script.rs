@@ -1,6 +1,6 @@
 use std::io::{ Cursor, Read, Error };
 
-use crate::varint::read_varint;
+use crate::utils::varint::read_varint;
 
 #[derive(Clone, Debug)]
 pub struct Script {

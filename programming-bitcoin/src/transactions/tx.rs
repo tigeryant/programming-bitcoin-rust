@@ -1,7 +1,7 @@
-use crate::hash256::hash256;
-use crate::varint::{ read_varint, encode_varint };
-use crate::tx_input::TxInput;
-use crate::tx_output::TxOutput;
+use crate::utils::hash256::hash256;
+use crate::utils::varint::{ read_varint, encode_varint };
+use crate::transactions::tx_input::TxInput;
+use crate::transactions::tx_output::TxOutput;
 use std::io::{Cursor, Read};
 
 #[derive(Clone, Debug)]
