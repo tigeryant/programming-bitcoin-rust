@@ -1,25 +1,19 @@
 use std::io::{Cursor, Read};
 
-use crate::varint::read_varint;
+use crate::script::Script;
 
 #[derive(Clone)]
-pub struct TxOutput { // use getter methods rather than setting these fields to public
-    pub amount: u64,
-    pub script_pubkey: Option<String>
+pub struct TxOutput {
+    amount: u64,
+    script_pubkey: Script
 }
 
 impl TxOutput {
     pub fn parse(cursor: &mut Cursor<Vec<u8>>) -> Self {
-        // amount u64
         let mut amount_buffer= [0u8; 8];
         cursor.read_exact(&mut amount_buffer).unwrap();
-        // read it as a u64
         let amount: u64 = u64::from_le_bytes(amount_buffer); 
-
-        // ScriptPubKey - variable length encoded, preceded by a varint
-        // script_pubkey? - placeholder
-        let varint = read_varint(cursor);
-        let script_pubkey = Some(String::from("script"));
+        let script_pubkey = Script::parse(cursor).unwrap();
 
         Self {
             amount,
@@ -27,14 +21,24 @@ impl TxOutput {
         }
     }
 
-    // write the serialize method
-    // TODO finish this later
+    /// Serializes the transaction output into a byte vector
     pub fn serialize(&self) -> Vec<u8> {
-        let result = self.amount.to_le_bytes();
-        // TODO come back to this - we need a script struct with serialization first
-        // serialize the script_pubkey and concat that to result
-        // return result
-        todo!()
-        // result
+        let mut result = Vec::new();
+
+        // Serialize amount, 8 bytes, little endian
+        result.extend_from_slice(&self.amount.to_le_bytes());
+
+        // Serialize the script_pubkey
+        result.extend(self.script_pubkey.serialize());
+
+        result
+    }
+
+    pub fn get_amount(&self) -> u64 {
+        self.amount
+    }
+
+    pub fn get_script_pubkey(&self) -> Script {
+        self.script_pubkey.clone()
     }
 }

@@ -1,19 +1,18 @@
 use std::io::{Cursor, Read};
 
-use crate::{tx::Tx, tx_fetcher::TxFetcher};
+use crate::{script::Script, tx::Tx, tx_fetcher::TxFetcher};
 
 #[derive(Clone)]
 pub struct TxInput {
     prev_tx_id: [u8; 32], // should this be prev?
     prev_index: [u8; 4], // should this be prev?
-    script_sig: Option<String>, // temporarily give this a type of String before we implement that struct
-    // script_sig: Script,
+    script_sig: Script,
     sequence: [u8; 4]
 }
 
 impl TxInput {
     // do we need this method?
-    pub fn new(prev_tx_id: [u8; 32], prev_index: [u8; 4], script_sig: Option<String>, sequence: [u8; 4]) -> Self {
+    pub fn new(prev_tx_id: [u8; 32], prev_index: [u8; 4], script_sig: Script, sequence: [u8; 4]) -> Self {
         Self {
             prev_tx_id,
             prev_index,
@@ -29,8 +28,7 @@ impl TxInput {
         // read 4 bytes for the index (little endian)
         let mut prev_index= [0u8; 4];
         cursor.read_exact(&mut prev_index).unwrap();
-        // script_sig? - return some placeholder for now
-        let script_sig = Some(String::from("script"));
+        let script_sig = Script::parse(cursor).unwrap();
         // read 4 bytes for the sequence
         let mut sequence= [0u8; 4];
         cursor.read_exact(&mut sequence).unwrap();
@@ -43,7 +41,6 @@ impl TxInput {
     }
 
     /// Returns the byte serialization of the transaction input
-    /// TODO complete later
     pub fn serialize(&self) -> Vec<u8> {
         let mut result = Vec::new();
 
@@ -55,11 +52,9 @@ impl TxInput {
         result.extend(prev_index_le);
 
         // Serialize script_sig
-        // result.extend(self.script_sig.serialize());
-        // PLACEHOLDER
-        result.extend([0u8; 4]);
+        result.extend(self.script_sig.serialize());
 
-        // Serialize sequence in little endian
+        // Serialize sequence
         let sequence = self.sequence;
         result.extend(sequence);
 
@@ -77,13 +72,13 @@ impl TxInput {
     pub fn value(&self) -> u64 {
         let tx = &self.fetch_tx(true, true);
         let index = u32::from_le_bytes(self.prev_index) as usize;
-        tx.tx_outs[index].amount
+        tx.tx_outs[index].get_amount()
     }
 
     /// Get the ScriptPubKey by looking up the tx hash
-    pub fn script_pubkey(&self, testnet: bool) -> Option<String> {
+    pub fn script_pubkey(&self, testnet: bool) -> Script {
         let tx = &self.fetch_tx(testnet, true);
         let index = u32::from_le_bytes(self.prev_index) as usize;
-        tx.tx_outs[index].script_pubkey.clone()
+        tx.tx_outs[index].get_script_pubkey()
     }
 }
