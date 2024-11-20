@@ -5,7 +5,6 @@ use ecc::{field_element::*, mod_exp::mod_exp, private_key::PrivateKey, secp256k1
 use primitive_types::U256;
 use ecc::point::Point;
 use ecc::rng;
-use ecc::tx;
 
 #[test]
 fn a_equals_itself() {

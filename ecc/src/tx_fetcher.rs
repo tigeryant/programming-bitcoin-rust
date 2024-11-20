@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, io::{ Cursor }};
+use std::{cell::RefCell, collections::HashMap, io::Cursor};
 use reqwest;
 use crate::tx::Tx;
 
