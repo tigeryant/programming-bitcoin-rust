@@ -2,7 +2,7 @@ use std::io::{Cursor, Read};
 
 use crate::script::Script;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TxOutput {
     amount: u64,
     script_pubkey: Script

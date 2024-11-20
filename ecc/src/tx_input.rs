@@ -2,7 +2,7 @@ use std::io::{Cursor, Read};
 
 use crate::{script::Script, tx::Tx, tx_fetcher::TxFetcher};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TxInput {
     prev_tx_id: [u8; 32], // should this be prev?
     prev_index: [u8; 4], // should this be prev?
@@ -72,13 +72,13 @@ impl TxInput {
     pub fn value(&self) -> u64 {
         let tx = &self.fetch_tx(true, true);
         let index = u32::from_le_bytes(self.prev_index) as usize;
-        tx.tx_outs[index].get_amount()
+        tx.get_tx_outs()[index].get_amount()
     }
 
     /// Get the ScriptPubKey by looking up the tx hash
     pub fn script_pubkey(&self, testnet: bool) -> Script {
         let tx = &self.fetch_tx(testnet, true);
         let index = u32::from_le_bytes(self.prev_index) as usize;
-        tx.tx_outs[index].get_script_pubkey()
+        tx.get_tx_outs()[index].get_script_pubkey()
     }
 }

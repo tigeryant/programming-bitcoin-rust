@@ -24,7 +24,7 @@ impl TxFetcher {
             let response = reqwest::blocking::get(url)?.text()?;
             let raw = hex::decode(response.trim())?;
             let mut cursor = Cursor::new(raw);
-            let tx = Tx::parse(&mut cursor); // do we need the ? operator?
+            let tx = Tx::parse(&mut cursor, testnet); // do we need the ? operator?
             // let tx = Tx::parse(&mut cursor)?;
 
             if tx.id() != tx_id {

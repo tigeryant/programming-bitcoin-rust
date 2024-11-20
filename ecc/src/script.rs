@@ -2,7 +2,7 @@ use std::io::{ Cursor, Read, Error };
 
 use crate::varint::read_varint;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Script {
     commands: Vec<Vec<u8>> // will this contain a byte array?
 }

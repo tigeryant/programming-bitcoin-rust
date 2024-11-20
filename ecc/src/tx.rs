@@ -4,17 +4,17 @@ use crate::tx_input::TxInput;
 use crate::tx_output::TxOutput;
 use std::io::{Cursor, Read};
 
-#[derive(Clone)]
-pub struct Tx { // use getter methods rather than setting these methods to public
+#[derive(Clone, Debug)]
+pub struct Tx {
     version: u32,
     tx_ins: Vec<TxInput>,
-    pub tx_outs: Vec<TxOutput>,
+    tx_outs: Vec<TxOutput>,
     locktime: u32,
     testnet: bool
 }
 
 impl Tx {
-    pub fn new(version: u32, tx_ins: Vec<TxInput>, tx_outs: Vec<TxOutput>, locktime: u32, testnet: bool) -> Self {
+    pub fn new(version: u32, tx_ins: Vec<TxInput>, tx_outs: Vec<TxOutput>, locktime: u32, testnet: bool) -> Self { // is this necessary?
         Self {
             version,
             tx_ins,
@@ -66,13 +66,13 @@ impl Tx {
         // Serialize locktime (4 bytes, little endian)
         result.extend_from_slice(&self.locktime.to_le_bytes());
 
-        result.push(self.testnet as u8);
+        // this should not be serialized as part of the transaction itself
+        // result.push(self.testnet as u8);
         
         result
     }
 
-    // TODO finish this parse method
-    pub fn parse(stream: &mut Cursor<Vec<u8>>) -> Self {
+    pub fn parse(stream: &mut Cursor<Vec<u8>>, testnet: bool) -> Self {
         let mut buffer = [0u8; 4];
         stream.read_exact(&mut buffer).unwrap();
         let version = u32::from_le_bytes(buffer);
@@ -102,10 +102,11 @@ impl Tx {
         stream.read_exact(&mut buffer).unwrap();
         let locktime = u32::from_le_bytes(buffer);
 
-        // Parse testnet flag (1 byte)
-        let mut testnet_buffer = [0u8; 1];
-        stream.read_exact(&mut testnet_buffer).unwrap();
-        let testnet = testnet_buffer[0] != 0;
+        // Parse testnet flag (1 byte) - can we parse this if it's not actually included?
+        // let mut testnet_buffer = [0u8; 1];
+        // stream.read_exact(&mut testnet_buffer).unwrap();
+        // let testnet = testnet_buffer[0] != 0;
+        // let testnet = true;
 
         Self {
             version,
@@ -128,5 +129,9 @@ impl Tx {
             .sum();
 
         input_total - output_total
+    }
+
+    pub fn get_tx_outs(&self) -> &Vec<TxOutput> {
+        &self.tx_outs
     }
 }
