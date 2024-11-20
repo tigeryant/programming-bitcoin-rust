@@ -15,3 +15,4 @@ pub mod varint;
 pub mod tx_input;
 pub mod tx_output;
 pub mod tx_fetcher;
+pub mod op;

@@ -108,14 +108,16 @@ fn new_insecure_address() {
 #[test]
 fn new_address() {
     let secret = rng::get_random_u256();
+    // WARNING: This prints the private key to the console
+    println!("Secret (private key) in hex: {:#x}", secret);
     let private_key = PrivateKey::new(secret);
 
     // Get public key point from private key
     let public_key = private_key.point();
 
     // Get testnet address (compressed format)
-    let address = public_key.address(true, true); // compressed=true, testnet=true
-    println!("{address}");
+    let address = public_key.address(true, true);
+    println!("Address: {address}");
 }
 
 #[test]
