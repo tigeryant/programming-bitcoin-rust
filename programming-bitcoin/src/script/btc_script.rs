@@ -103,4 +103,10 @@ impl Script {
         length_bytes.append(&mut result);
         length_bytes
     }
+
+    pub fn concat(self, other: Script) -> Self {
+        let mut commands = self.commands;
+        commands.extend(other.commands);
+        Self { commands }
+    }
 }
