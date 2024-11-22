@@ -37,6 +37,28 @@ fn op_checksig(_stack: &mut Vec<Vec<u8>>, _z: i64) -> bool {
     true
 }
 
+// 172 - OP_CHECKSIG - STARTING POINT
+/*
+fn op_checksig(stack: &mut Vec<Vec<u8>>, z: i64) -> bool {
+    if stack.len() < 2 {
+        return false;
+    }
+    
+    // Get the public key and signature from stack
+    let pub_key = stack.pop().unwrap();
+    let signature = stack.pop().unwrap();
+    
+    // TODO: Implement actual signature verification using S256Point and Signature
+    // 1. Convert pub_key bytes to S256Point
+    // 2. Convert signature bytes to Signature
+    // 3. Verify signature using point.verify(z, signature)
+    
+    // Push result to stack (1 for valid, 0 for invalid)
+    stack.push(vec![1]);
+    true
+}
+*/
+
 type StackOpFunc = fn(&mut Vec<Vec<u8>>, &mut Vec<Vec<u8>>) -> bool;
 
 #[derive(Clone)]
