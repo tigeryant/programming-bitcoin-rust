@@ -1,17 +1,18 @@
 use std::io::{ Cursor, Read, Error };
 
 use crate::utils::varint::read_varint;
+use crate::script::op::{self, OpFunction};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug)] // Write a custom Debug implementation
 pub struct Script {
     commands: Vec<Vec<u8>> // will this contain a byte array?
 }
 
 impl Script {
-    pub fn new(commands: Option<Vec<u8>>) -> Self {
+    pub fn new(commands: Option<Vec<Vec<u8>>>) -> Self { // consider removing Option here - is there a good reason to accept None? commands is private so we can't add to it later anyway
         match commands {
             Some(cmds) => Self { 
-                commands: vec![cmds] 
+                commands: cmds 
             },
             None => Self { 
                 commands: vec![] 
@@ -108,5 +109,67 @@ impl Script {
         let mut commands = self.commands;
         commands.extend(other.commands);
         Self { commands }
+    }
+
+    pub fn evaluate(self, z: Vec<u8>) -> bool { // should z be a stream?
+        let mut commands = self.commands.clone();
+        let mut stack = vec![];
+        // let altstack = vec![];
+        while !commands.is_empty() {
+            let cmd = commands.remove(0); // remember commands is of type Vec<Vec<u8>> -> cmd will either be an element or an opcode
+            // if the command is of length, evaluate it as an op_code
+            let is_op_code = cmd.len() == 1;
+            if is_op_code {
+                let op_code = cmd[0];
+                // retrieve the op_code_names hashmap
+                let names = op::create_op_code_names();
+                let operations = op::create_op_code_functions();
+                // retrieve the specific operation from the operations HashMap
+                let op_function = operations.get(&op_code).unwrap().clone(); 
+                let operation = match op_function {
+                    OpFunction::StackOp(func) => func(&mut stack),
+                    _ => false
+                    // TODO come back to these later (OP_IF and OP_NOTIF)
+                    // OpFunction::StackItemsOp(func) => func(&mut stack, &mut commands), // expects a Vec<u8> - should we just pass one element of commands here?
+                    // OpFunction::StackAltStackOp(func) => func(&mut stack, &mut alt_stack),
+                    // OpFunction::StackHashOp(func) => func(&mut stack),
+                    // OpFunction::StackLocktimeSequenceOp(func) => func(&mut stack, locktime, sequence),
+                    // OpFunction::StackSigOp(func) => func(&mut stack, z),
+                };
+                
+                let name = *names.get(&op_code).unwrap();
+                if vec![99, 100].contains(&op_code) { // OP_IF and OP_NOTIF
+                    // execute the command on the stack and commands
+                    // examine how OP_IF and OP_NOTIF operate on their commands stack
+                    // clearly define what the stack, commands and altstack are here
+                    // if !operation(stack, commands) {
+                    //     dbg!("bad op: {:?}", name);
+                    //     return false;
+                    // }
+                    dbg!(format!("bad op: {name}"));
+                    return false;
+                } else if vec![107, 108].contains(&op_code) {
+                    dbg!(format!("bad op: {name}"));
+                    return false;
+                } else if vec![172, 173, 174, 175].contains(&op_code) {
+                    dbg!(format!("bad op: {name}"));
+                    return false;
+                } else {
+                    dbg!(format!("bad op: {name}"));
+                    return false;
+                }
+            } else {
+                // Handle data element by pushing to stack
+                stack.push(cmd.clone());
+            }
+            dbg!(cmd);
+        }
+        if stack.is_empty() {
+            return false
+        }
+        if stack.pop() == Some(vec![0]) { // if the last element on the stack is a 0, fail the script by returning false
+            return false
+        }
+        true
     }
 }
