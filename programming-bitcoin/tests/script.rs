@@ -1,5 +1,5 @@
 use programming_bitcoin::script::btc_script::Script;
-use std::io::Cursor;
+// use std::io::Cursor;
 
 #[test]
 pub fn evaluate_script() {

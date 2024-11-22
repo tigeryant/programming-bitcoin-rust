@@ -6,6 +6,7 @@ use crate::ecc::secp256k1_params::S256Params;
 use crate::ecc::s256point::S256Point;
 use crate::ecc::signature::Signature;
 use crate::utils::hash160;
+use crate::ecc::s256point;
 
 #[derive(Debug, Clone)]
 pub struct Point {
@@ -106,6 +107,18 @@ impl Point {
             result.extend_from_slice(&self.y.unwrap().num().to_big_endian());
             result
         }
+    }
+
+    // Returns a point based on sec formatted pubkey
+    // we can deduce the format (compressed vs uncompressed) from the first byte - 0x02, 0x03, 0x04
+    pub fn point_from_sec(sec: Vec<u8>, compressed: bool) -> Self {
+        // for now, we'll assume we receive an uncompressed sec
+        dbg!(sec.len());
+        // if !compressed {
+            let x = U256::from_big_endian(&sec[1..=32]);
+            let y = U256::from_big_endian(&sec[33..=64]);
+            s256point::S256Point::new_s256_point(Some(x), Some(y))
+        // }
     }
 
     pub fn parse(self, sec_bin: Vec<u8>) -> Self {

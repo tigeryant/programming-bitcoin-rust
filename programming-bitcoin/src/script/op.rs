@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::ecc::point::Point;
 use crate::utils::hash256::hash256;
 use crate::utils::hash160::hash160;
 
@@ -49,10 +50,11 @@ pub fn decode_num(element: &[u8]) -> i32 {
     }
 }
 
-fn op_0(stack: &mut Vec<Vec<u8>>) -> bool {
-    stack.push(encode_num(0));
-    true
-}
+// temporarily removing until it's used
+// fn op_0(stack: &mut Vec<Vec<u8>>) -> bool {
+//     stack.push(encode_num(0));
+//     true
+// }
 
 // 118 - OP_DUP
 pub fn op_dup(stack: &mut Vec<Vec<u8>>) -> bool {
@@ -84,13 +86,6 @@ pub fn op_hash256(stack: &mut Vec<Vec<u8>>) -> bool {
 }
 
 // 172 - OP_CHECKSIG
-fn op_checksig(_stack: &mut Vec<Vec<u8>>, _z: i64) -> bool {
-    // unimplemented!() // placeholder
-    true
-}
-
-// 172 - OP_CHECKSIG - STARTING POINT
-/*
 fn op_checksig(stack: &mut Vec<Vec<u8>>, z: i64) -> bool {
     if stack.len() < 2 {
         return false;
@@ -102,6 +97,7 @@ fn op_checksig(stack: &mut Vec<Vec<u8>>, z: i64) -> bool {
     
     // TODO: Implement actual signature verification using S256Point and Signature
     // 1. Convert pub_key bytes to S256Point
+    let pubkey_point = Point::point_from_sec(pub_key, false);
     // 2. Convert signature bytes to Signature
     // 3. Verify signature using point.verify(z, signature)
     
@@ -109,7 +105,6 @@ fn op_checksig(stack: &mut Vec<Vec<u8>>, z: i64) -> bool {
     stack.push(vec![1]);
     true
 }
-*/
 
 type StackOpFunc = fn(&mut Vec<Vec<u8>>, &mut Vec<Vec<u8>>) -> bool;
 

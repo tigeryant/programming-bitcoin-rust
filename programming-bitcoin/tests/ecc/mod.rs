@@ -121,3 +121,11 @@ fn new_address() {
     let address = public_key.address(true, true);
     println!("Address: {address}");
 }
+
+#[test]
+fn test_point_from_sec() {
+    // uncompressed sec, as seen from the prepended 0x04
+    // should be 1 byte for the flag, 32 for x, then 32 for y (total 65 bytes)
+    let raw_sec = hex::decode("04887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c61de6d95231cd89026e286df3b6ae4a894a3378e393e93a0f45b666329a0ae34").unwrap();
+    Point::point_from_sec(raw_sec, false);
+}
