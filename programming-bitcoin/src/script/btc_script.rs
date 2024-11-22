@@ -167,6 +167,7 @@ impl Script {
         if stack.is_empty() {
             return false
         }
+        // update this according to encode/decode num and op_0 later
         if stack.pop() == Some(vec![0]) { // if the last element on the stack is a 0, fail the script by returning false
             return false
         }

@@ -2,6 +2,58 @@ use std::collections::HashMap;
 use crate::utils::hash256::hash256;
 use crate::utils::hash160::hash160;
 
+pub fn encode_num(num: i32) -> Vec<u8> {
+    if num == 0 {
+        return vec![];
+    }
+    let abs_num = num.abs();
+    let negative = num < 0;
+    let mut result = Vec::new();
+    let mut remaining = abs_num;
+    while remaining > 0 {
+        result.push((remaining & 0xff) as u8);
+        remaining >>= 8;
+    }
+    if result.last().unwrap() & 0x80 != 0 {
+        if negative {
+            result.push(0x80);
+        } else {
+            result.push(0);
+        }
+    } else if negative {
+        let last = result.last_mut().unwrap();
+        *last |= 0x80;
+    }
+    result
+}
+
+pub fn decode_num(element: &[u8]) -> i32 {
+    if element.is_empty() {
+        return 0;
+    }
+    let big_endian = element.iter().rev().cloned().collect::<Vec<_>>();
+    let negative = big_endian[0] & 0x80 != 0;
+    let mut result = if negative {
+        (big_endian[0] & 0x7f) as i32
+    } else {
+        big_endian[0] as i32
+    };
+    for &c in &big_endian[1..] {
+        result <<= 8;
+        result += c as i32;
+    }
+    if negative {
+        -result
+    } else {
+        result
+    }
+}
+
+fn op_0(stack: &mut Vec<Vec<u8>>) -> bool {
+    stack.push(encode_num(0));
+    true
+}
+
 // 118 - OP_DUP
 pub fn op_dup(stack: &mut Vec<Vec<u8>>) -> bool {
     if stack.is_empty() {
