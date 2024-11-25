@@ -116,44 +116,39 @@ impl Script {
         let mut stack = vec![];
         // let altstack = vec![];
         while !commands.is_empty() {
-            let cmd = commands.remove(0); // remember commands is of type Vec<Vec<u8>> -> cmd will either be an element or an opcode
-            // if the command is of length, evaluate it as an op_code
+            let cmd = commands.remove(0);
+            // if the command is of length 1, evaluate it as an op_code
             let is_op_code = cmd.len() == 1;
             if is_op_code {
                 let op_code = cmd[0];
-                // retrieve the op_code_names hashmap
                 let names = op::create_op_code_names();
+                let name = *names.get(&op_code).unwrap();
                 let operations = op::create_op_code_functions();
-                // retrieve the specific operation from the operations HashMap
                 let op_function = operations.get(&op_code).unwrap().clone(); 
-                let operation = match op_function {
-                    OpFunction::StackOp(func) => func(&mut stack),
-                    _ => false
-                    // TODO come back to these later (OP_IF and OP_NOTIF)
-                    // OpFunction::StackItemsOp(func) => func(&mut stack, &mut commands), // expects a Vec<u8> - should we just pass one element of commands here?
-                    // OpFunction::StackAltStackOp(func) => func(&mut stack, &mut alt_stack),
-                    // OpFunction::StackHashOp(func) => func(&mut stack),
-                    // OpFunction::StackLocktimeSequenceOp(func) => func(&mut stack, locktime, sequence),
-                    // OpFunction::StackSigOp(func) => func(&mut stack, z),
+                let z_clone = z.clone();
+                let mut operation: Box<dyn FnMut() -> bool> = {
+                    let stack_ref = &mut stack;
+                    match op_function {
+                        OpFunction::StackOp(func) => Box::new(move || func(stack_ref)),
+                        OpFunction::StackSigOp(func) => Box::new(move || func(stack_ref, z_clone.clone())),
+                    }
                 };
                 
-                let name = *names.get(&op_code).unwrap();
                 if vec![99, 100].contains(&op_code) { // OP_IF and OP_NOTIF
-                    // execute the command on the stack and commands
-                    // examine how OP_IF and OP_NOTIF operate on their commands stack
-                    // clearly define what the stack, commands and altstack are here
-                    // if !operation(stack, commands) {
-                    //     dbg!("bad op: {:?}", name);
-                    //     return false;
-                    // }
-                    dbg!(format!("bad op: {name}"));
-                    return false;
+                    if !operation() { // pass args
+                        dbg!(format!("bad op: {name}"));
+                        return false;
+                    }
                 } else if vec![107, 108].contains(&op_code) {
-                    dbg!(format!("bad op: {name}"));
-                    return false;
-                } else if vec![172, 173, 174, 175].contains(&op_code) {
-                    dbg!(format!("bad op: {name}"));
-                    return false;
+                    if !operation() { // pass args
+                        dbg!(format!("bad op: {name}"));
+                        return false;
+                    }
+                } else if vec![172, 173, 174, 175].contains(&op_code) { // OP_CHECKSIG is 172
+                    if !operation() {
+                        dbg!(format!("bad op: {name}"));
+                        return false;
+                    }
                 } else {
                     dbg!(format!("bad op: {name}"));
                     return false;
@@ -162,9 +157,9 @@ impl Script {
                 // Handle data element by pushing to stack
                 stack.push(cmd.clone());
             }
-            dbg!(cmd);
         }
         if stack.is_empty() {
+            println!("returning false - empty stack");
             return false
         }
         // update this according to encode/decode num and op_0 later

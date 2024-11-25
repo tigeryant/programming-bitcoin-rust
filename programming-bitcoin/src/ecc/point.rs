@@ -1,5 +1,6 @@
 use crate::utils::base58::encode_base58_checksum;
 use crate::ecc::field_element::*;
+use num_bigint::BigUint;
 use primitive_types::U256;
 use std::ops::{Add, Mul};
 use crate::ecc::secp256k1_params::S256Params;
@@ -67,24 +68,39 @@ impl Point {
     }
 
     pub fn verify(self: Point, z: U256, sig: Signature) -> bool {
-        // Calculate s_inv = s^(N-2) mod N using Fermat's little theorem
-        let s_inv = sig.s.pow(S256Params::n() - U256::from(2)) % S256Params::n();
+        // Convert inputs to BigUint
+        let z_bytes = U256::to_big_endian(&z);
+        let z_biguint = BigUint::from_bytes_be(&z_bytes);
+        let n = BigUint::from_bytes_be(&S256Params::n().to_big_endian());
+        let s_biguint = BigUint::from_bytes_be(&sig.s().to_big_endian());
+        let r_biguint = BigUint::from_bytes_be(&sig.r().to_big_endian());
+        
+        // Calculate s_inv using Fermat's little theorem
+        let two = BigUint::from(2u8);
+        let s_inv = s_biguint.modpow(&(n.clone() - two), &n);
         
         // Calculate u = z * s_inv mod N
-        let u = (z * s_inv) % S256Params::n();
+        let u = (&z_biguint * &s_inv) % &n;
         
         // Calculate v = r * s_inv mod N
-        let v = (sig.r * s_inv) % S256Params::n();
+        let v = (&r_biguint * &s_inv) % &n;
         
+        // Convert back to U256 for point multiplication
+        let u_bytes = u.to_bytes_be();
+        let v_bytes = v.to_bytes_be();
+        let u_u256 = U256::from_big_endian(&u_bytes);
+        let v_u256 = U256::from_big_endian(&v_bytes);
+        
+        // previous implementation
         // Calculate u*G + v*P where G is generator point and P is public key point
         let g = S256Point::new_s256_point(Some(S256Params::gx()), Some(S256Params::gy()));
-        let u_g = S256Point::multiply(&g, u);
-        let v_p = S256Point::multiply(&self, v);
+        let u_g = S256Point::multiply(&g, u_u256);
+        let v_p = S256Point::multiply(&self, v_u256);
         let total = &u_g + &v_p;
         
-        // Verify that the x coordinate equals r
+        // Verify x coordinate equals r
         match total.x {
-            Some(x) => x.num() == sig.r,
+            Some(x) => x.num() == sig.r(),
             None => false
         }
     }
@@ -110,15 +126,34 @@ impl Point {
     }
 
     // Returns a point based on sec formatted pubkey
-    // we can deduce the format (compressed vs uncompressed) from the first byte - 0x02, 0x03, 0x04
-    pub fn point_from_sec(sec: Vec<u8>, compressed: bool) -> Self {
-        // for now, we'll assume we receive an uncompressed sec
-        dbg!(sec.len());
-        // if !compressed {
+    pub fn point_from_sec(sec: Vec<u8>) -> Self {
+        let compressed = !matches!(sec[0], 0x04);
+
+        if compressed {
+            let is_even = sec[0] == 0x02;
+            let x = U256::from_big_endian(&sec[1..=32]);
+            
+            // Calculate right side of y² = x³ + 7
+            let x_field = FieldElement::new(x, S256Params::p());
+            let alpha = &x_field.pow(U256::from(3)) + &FieldElement::new(S256Params::b(), S256Params::p());
+            let beta = alpha.sqrt();
+            
+            // Get even and odd possibilities for y
+            let (even_beta, odd_beta) = if beta.num() % 2 == U256::zero() {
+                (beta.clone(), FieldElement::new(S256Params::p() - beta.num(), S256Params::p()))
+            } else {
+                (FieldElement::new(S256Params::p() - beta.num(), S256Params::p()), beta.clone())
+            };
+            
+            // Choose y based on prefix
+            let y = if is_even { even_beta.num() } else { odd_beta.num() };
+            
+            s256point::S256Point::new_s256_point(Some(x), Some(y))
+        } else {
             let x = U256::from_big_endian(&sec[1..=32]);
             let y = U256::from_big_endian(&sec[33..=64]);
             s256point::S256Point::new_s256_point(Some(x), Some(y))
-        // }
+        }
     }
 
     pub fn parse(self, sec_bin: Vec<u8>) -> Self {

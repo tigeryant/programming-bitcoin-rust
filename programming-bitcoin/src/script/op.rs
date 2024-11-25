@@ -1,5 +1,8 @@
 use std::collections::HashMap;
+use primitive_types::U256;
+
 use crate::ecc::point::Point;
+use crate::ecc::signature::Signature;
 use crate::utils::hash256::hash256;
 use crate::utils::hash160::hash160;
 
@@ -86,36 +89,42 @@ pub fn op_hash256(stack: &mut Vec<Vec<u8>>) -> bool {
 }
 
 // 172 - OP_CHECKSIG
-fn op_checksig(stack: &mut Vec<Vec<u8>>, z: i64) -> bool {
+fn op_checksig(stack: &mut Vec<Vec<u8>>, z: Vec<u8>) -> bool {
     if stack.len() < 2 {
         return false;
     }
     
     // Get the public key and signature from stack
     let pub_key = stack.pop().unwrap();
-    let signature = stack.pop().unwrap();
+    let signature_bytes = stack.pop().unwrap();
     
-    // TODO: Implement actual signature verification using S256Point and Signature
     // 1. Convert pub_key bytes to S256Point
-    let pubkey_point = Point::point_from_sec(pub_key, false);
+    let pubkey_point = Point::point_from_sec(pub_key);
     // 2. Convert signature bytes to Signature
+    let signature = Signature::sig_from_bytes(signature_bytes);
     // 3. Verify signature using point.verify(z, signature)
+    let z = U256::from_big_endian(&z);
+    let result = pubkey_point.verify(z, signature);
     
     // Push result to stack (1 for valid, 0 for invalid)
-    stack.push(vec![1]);
-    true
+    if result {
+        stack.push(vec![1]);
+    } else {
+        stack.push(vec![0]);
+    }
+    result
 }
 
-type StackOpFunc = fn(&mut Vec<Vec<u8>>, &mut Vec<Vec<u8>>) -> bool;
+// type StackOpFunc = fn(&mut Vec<Vec<u8>>, &mut Vec<Vec<u8>>) -> bool;
 
 #[derive(Clone)]
 pub enum OpFunction {
     StackOp(fn(&mut Vec<Vec<u8>>) -> bool),
-    StackItemsOp(fn(&mut Vec<Vec<u8>>, &mut Vec<u8>) -> bool),
-    StackAltStackOp(StackOpFunc),
-    StackHashOp(fn(&mut Vec<Vec<u8>>) -> bool),
-    StackLocktimeSequenceOp(fn(&mut Vec<Vec<u8>>, u32, u32) -> bool),
-    StackSigOp(fn(&mut Vec<Vec<u8>>, i64) -> bool),
+    // StackItemsOp(fn(&mut Vec<Vec<u8>>, &mut Vec<u8>) -> bool),
+    // StackAltStackOp(StackOpFunc),
+    // StackHashOp(fn(&mut Vec<Vec<u8>>) -> bool),
+    // StackLocktimeSequenceOp(fn(&mut Vec<Vec<u8>>, u32, u32) -> bool),
+    StackSigOp(fn(&mut Vec<Vec<u8>>, Vec<u8>) -> bool),
 }
 
 pub fn create_op_code_functions() -> HashMap<u8, OpFunction> {
