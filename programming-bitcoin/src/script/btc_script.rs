@@ -1,22 +1,18 @@
+use std::fmt;
 use std::io::{ Cursor, Read, Error };
 
 use crate::utils::varint::read_varint;
-use crate::script::op::{self, OpFunction};
+use crate::script::op::{self, create_op_code_names, encode_num, OpFunction};
 
-#[derive(Clone, Debug)] // Write a custom Debug implementation
+#[derive(Clone, Debug)]
 pub struct Script {
-    commands: Vec<Vec<u8>> // will this contain a byte array?
+    commands: Vec<Vec<u8>>
 }
 
 impl Script {
-    pub fn new(commands: Option<Vec<Vec<u8>>>) -> Self { // consider removing Option here - is there a good reason to accept None? commands is private so we can't add to it later anyway
-        match commands {
-            Some(cmds) => Self { 
-                commands: cmds 
-            },
-            None => Self { 
-                commands: vec![] 
-            }
+    pub fn new(commands: Vec<Vec<u8>>) -> Self {
+        Self {
+            commands
         }
     }
 
@@ -49,6 +45,7 @@ impl Script {
                 commands.push(cmd);
                 count += data_length + 2;
             } else { // it is an op_code we add to the stack
+                dbg!(current_byte);
                 let op_code = current_byte;
                 commands.push(vec![op_code]);
             }
@@ -56,7 +53,7 @@ impl Script {
         if count != length {
             return Err(Error::new(
                 std::io::ErrorKind::InvalidData,
-                "parsing script failed",
+                "Parsing script failed",
             ));
         }
         Ok(Self { commands })
@@ -113,44 +110,26 @@ impl Script {
 
     pub fn evaluate(self, z: Vec<u8>) -> bool { // should z be a stream?
         let mut commands = self.commands.clone();
+        dbg!(&commands);
         let mut stack = vec![];
         // let altstack = vec![];
         while !commands.is_empty() {
             let cmd = commands.remove(0);
-            // if the command is of length 1, evaluate it as an op_code
-            let is_op_code = cmd.len() == 1;
+            let is_op_code = cmd.len() == 1; // if the command is of length 1, evaluate it as an op_code
             if is_op_code {
                 let op_code = cmd[0];
+                dbg!(op_code);
                 let names = op::create_op_code_names();
-                let name = *names.get(&op_code).unwrap();
+                let op_name = *names.get(&op_code).unwrap();
                 let operations = op::create_op_code_functions();
                 let op_function = operations.get(&op_code).unwrap().clone(); 
-                let z_clone = z.clone();
-                let mut operation: Box<dyn FnMut() -> bool> = {
-                    let stack_ref = &mut stack;
-                    match op_function {
-                        OpFunction::StackOp(func) => Box::new(move || func(stack_ref)),
-                        OpFunction::StackSigOp(func) => Box::new(move || func(stack_ref, z_clone.clone())),
-                    }
+                let operation_result: bool = match op_function {
+                    OpFunction::StackOp(func) => func(&mut stack),
+                    OpFunction::StackSigOp(func) => func(&mut stack, z.clone()),
                 };
-                
-                if vec![99, 100].contains(&op_code) { // OP_IF and OP_NOTIF
-                    if !operation() { // pass args
-                        dbg!(format!("bad op: {name}"));
-                        return false;
-                    }
-                } else if vec![107, 108].contains(&op_code) {
-                    if !operation() { // pass args
-                        dbg!(format!("bad op: {name}"));
-                        return false;
-                    }
-                } else if vec![172, 173, 174, 175].contains(&op_code) { // OP_CHECKSIG is 172
-                    if !operation() {
-                        dbg!(format!("bad op: {name}"));
-                        return false;
-                    }
-                } else {
-                    dbg!(format!("bad op: {name}"));
+
+                if !operation_result {
+                    dbg!(format!("bad op: {op_name}"));
                     return false;
                 }
             } else {
@@ -159,13 +138,28 @@ impl Script {
             }
         }
         if stack.is_empty() {
-            println!("returning false - empty stack");
             return false
         }
-        // update this according to encode/decode num and op_0 later
-        if stack.pop() == Some(vec![0]) { // if the last element on the stack is a 0, fail the script by returning false
+        if stack.pop() == Some(encode_num(0)) {
             return false
         }
         true
+    }
+}
+
+impl fmt::Display for Script {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let op_code_names = create_op_code_names();
+        
+        self.commands.iter().try_fold((), |_, cmd| {
+            if cmd.len() == 1 {
+                write!(f, "{} ", op_code_names[&cmd[0]])
+            } else {
+                let mut hex_string = String::with_capacity(cmd.len() * 2);
+                cmd.iter()
+                    .for_each(|byte| hex_string.push_str(&format!("{:02x}", byte)));
+                write!(f, "{} ", hex_string)
+            }
+        })
     }
 }
