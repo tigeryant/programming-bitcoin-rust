@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use primitive_types::U256;
 
 use crate::ecc::point::Point;
 use crate::ecc::signature::Signature;
@@ -147,11 +146,10 @@ fn op_checksig(stack: &mut Vec<Vec<u8>>, z: Vec<u8>) -> bool {
     let signature_bytes = stack.pop().unwrap();
     
     // 1. Convert pub_key bytes to S256Point
-    let pubkey_point = Point::point_from_sec(pub_key);
+    let pubkey_point = Point::parse_to_s256_point(pub_key);
     // 2. Convert signature bytes to Signature
-    let signature = Signature::sig_from_bytes(signature_bytes);
+    let signature = Signature::parse(signature_bytes);
     // 3. Verify signature using point.verify(z, signature)
-    let z = U256::from_big_endian(&z);
     let result = pubkey_point.verify(z, signature);
     
     // Push result to stack (1 for valid, 0 for invalid)

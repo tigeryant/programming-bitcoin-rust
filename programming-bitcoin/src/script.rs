@@ -1,2 +1,2 @@
 pub mod op;
-pub mod btc_script;
+pub mod script;

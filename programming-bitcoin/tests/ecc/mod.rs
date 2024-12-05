@@ -126,6 +126,6 @@ fn new_address() {
 fn test_point_from_sec() {
     // uncompressed sec, as seen from the prepended 0x04
     let raw_sec = hex::decode("04887387e452b8eacc4acfde10d9aaf7f6d9a0f975aabb10d006e4da568744d06c61de6d95231cd89026e286df3b6ae4a894a3378e393e93a0f45b666329a0ae34").unwrap();
-    Point::point_from_sec(raw_sec);
+    Point::parse_to_s256_point(raw_sec);
     // TODO add test cases for uncompressed - 0x02 and 0x03
 }

@@ -31,12 +31,21 @@ impl FieldElement {
         self.num
     }
 
-    pub fn sqrt(&self) -> Self {
-        let p = self.prime;
-        let exp = (p + U256::one()) / U256::from(4);
-        let num = self.num.pow(exp);
-        Self::new(num, self.prime)
-    }
+pub fn sqrt(&self) -> Self {
+    // Convert prime to BigUint
+    let p = BigUint::from_bytes_be(&self.prime.to_big_endian());
+    let exp = (p.clone() + BigUint::from(1u32)) / BigUint::from(4u32);
+    
+    // Convert num to BigUint and perform power operation
+    let a = BigUint::from_bytes_be(&self.num.to_big_endian());
+    let result = a.modpow(&exp, &p);
+    
+    // Convert result back to U256
+    let num = U256::from_big_endian(&result.to_bytes_be());
+    
+    Self::new(num, self.prime)
+}
+
 }
 
 impl PartialEq for &FieldElement {

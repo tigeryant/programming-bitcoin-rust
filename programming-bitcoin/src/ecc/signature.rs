@@ -22,7 +22,7 @@ impl Signature {
         self.s
     }
 
-    // Returns the signature in Distinguished Encoding Rules
+    // Returns the signature in Distinguished Encoding Rules as a byte vector
     pub fn der(&self) -> Vec<u8> {
         // Convert r to big-endian bytes and trim leading zeros
         let mut rbin: Vec<u8> = self.r.to_big_endian().to_vec();
@@ -62,7 +62,8 @@ impl Signature {
         final_result
     }
     
-    pub fn sig_from_bytes(raw_sig: Vec<u8>) -> Self {
+    /// Returns a Signature from a raw sig encoded as a byte vector (DER)
+    pub fn parse(raw_sig: Vec<u8>) -> Self {
         let r_length = raw_sig[3];
         // check the value at index 4
         let mut start_index = 4;

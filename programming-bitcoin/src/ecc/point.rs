@@ -67,10 +67,9 @@ impl Point {
         }
     }
 
-    pub fn verify(self: Point, z: U256, sig: Signature) -> bool {
+    pub fn verify(self: Point, z: Vec<u8>, sig: Signature) -> bool {
         // Convert inputs to BigUint
-        let z_bytes = U256::to_big_endian(&z);
-        let z_biguint = BigUint::from_bytes_be(&z_bytes);
+        let z_biguint = BigUint::from_bytes_be(&z);
         let n = BigUint::from_bytes_be(&S256Params::n().to_big_endian());
         let s_biguint = BigUint::from_bytes_be(&sig.s().to_big_endian());
         let r_biguint = BigUint::from_bytes_be(&sig.r().to_big_endian());
@@ -126,7 +125,7 @@ impl Point {
     }
 
     // Returns a point based on sec formatted pubkey
-    pub fn point_from_sec(sec: Vec<u8>) -> Self {
+    pub fn parse_to_s256_point(sec: Vec<u8>) -> Self {
         let compressed = !matches!(sec[0], 0x04);
 
         if compressed {
@@ -156,6 +155,7 @@ impl Point {
         }
     }
 
+    // Returns a point from a byte vector representing serialized SEC
     pub fn parse(self, sec_bin: Vec<u8>) -> Self {
         if sec_bin[0] == 4 {
             let x = Some(U256::from_big_endian(&sec_bin[1..33]));

@@ -1,6 +1,6 @@
 use std::io::{Cursor, Read};
 
-use crate::{script::btc_script::Script, transactions::tx_fetcher::TxFetcher};
+use crate::{script::script::Script, transactions::tx_fetcher::TxFetcher};
 
 use super::tx::Tx;
 
@@ -64,7 +64,7 @@ impl TxInput {
     }
 
     pub fn fetch_tx(&self, testnet: bool, fresh: bool) -> Tx {
-        let tx_id_hex = hex::encode(self.prev_tx_id);
+        let tx_id_hex = self.get_prev_tx_id();
         // need a fetcher instance here - may not be the best place for this
         let fetcher = TxFetcher::build();
         TxFetcher::fetch(&fetcher, &tx_id_hex, testnet, fresh).unwrap()
@@ -82,5 +82,33 @@ impl TxInput {
         let tx = &self.fetch_tx(testnet, true);
         let index = u32::from_le_bytes(self.prev_index) as usize;
         tx.get_tx_outs()[index].get_script_pubkey()
+    }
+
+    /// Returns a modified input (script_sig replaced with script_pubkey) for creating a signature hash
+    pub fn get_modified_input(&self, testnet: bool) -> Self {
+        Self {
+            prev_tx_id: self.prev_tx_id,
+            prev_index: self.prev_index,
+            script_sig: self.script_pubkey(testnet),
+            sequence: self.sequence
+        }
+    }
+
+    fn get_prev_tx_id(&self) -> String {
+        let mut reversed = self.prev_tx_id;
+        reversed.reverse();
+        hex::encode(reversed)
+    }
+}
+
+
+impl std::fmt::Display for TxInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(f, "TxInput {{ \n  prev_tx_id: {}\n  prev_index: {}\n  script_sig: \n{}  sequence: {} \n}}", 
+            hex::encode(self.prev_tx_id),
+            u32::from_le_bytes(self.prev_index),
+            self.script_sig,
+            u32::from_le_bytes(self.sequence)
+        )
     }
 }

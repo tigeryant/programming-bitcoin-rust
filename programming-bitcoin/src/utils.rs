@@ -3,3 +3,4 @@ pub mod hash160;
 pub mod hash256;
 pub mod rng;
 pub mod varint;
+pub mod sig_hash_type;

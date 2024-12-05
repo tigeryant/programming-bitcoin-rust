@@ -15,7 +15,7 @@ impl TxFetcher {
         }
     }
 
-    // fetch a tx from the UTXO set or return it from the cache
+    /// Fetch a tx from the UTXO set or return it from the cache
     pub fn fetch(&self, tx_id: &str, testnet: bool, fresh: bool) -> Result<Tx, Box<dyn std::error::Error>> { // note the use of dynamic dispatch here
         let mut cache = self.cache.borrow_mut();
         if fresh || !cache.contains_key(tx_id) {
@@ -24,15 +24,14 @@ impl TxFetcher {
             let response = reqwest::blocking::get(url)?.text()?;
             let raw = hex::decode(response.trim())?;
             let mut cursor = Cursor::new(raw);
-            let tx = Tx::parse(&mut cursor, testnet); // do we need the ? operator?
+            let tx = Tx::parse(&mut cursor, testnet); // do we need the ? operator? -> can only be used for certain methods
             // let tx = Tx::parse(&mut cursor)?;
-
+            
             if tx.id() != tx_id {
                 return Err(format!("not the same id: {} vs {}", tx.id(), tx_id).into());
             }
             cache.insert(tx_id.to_string(), tx);
         }
-
         Ok(cache.get(tx_id).unwrap().clone())
     }
 

@@ -1,8 +1,10 @@
+use std::io::{Cursor, Read};
+use std::fmt;
 use crate::utils::hash256::hash256;
 use crate::utils::varint::{ read_varint, encode_varint };
 use crate::transactions::tx_input::TxInput;
 use crate::transactions::tx_output::TxOutput;
-use std::io::{Cursor, Read};
+use crate::utils::sig_hash_type::SigHashType;
 
 #[derive(Clone, Debug)]
 pub struct Tx {
@@ -30,13 +32,8 @@ impl Tx {
     }
     
     fn hash(&self) -> Vec<u8> {
-        // Serialize tx but exclude the last byte (testnet flag)
         let serialized = self.serialize();
-        let hash_input = &serialized[..serialized.len()-1];
-        
-        // Get hash256 of serialized tx (excluding testnet flag)
-        let hash = hash256(hash_input);
-        
+        let hash = hash256(&serialized);
         // Reverse to get little endian
         hash.into_iter().rev().collect()
     }
@@ -66,8 +63,7 @@ impl Tx {
         // Serialize locktime (4 bytes, little endian)
         result.extend_from_slice(&self.locktime.to_le_bytes());
 
-        // this should not be serialized as part of the transaction itself
-        // result.push(self.testnet as u8);
+        // We omit the testnet field - this is not part of the serialized tx
         
         result
     }
@@ -131,7 +127,51 @@ impl Tx {
         input_total - output_total
     }
 
-    pub fn get_tx_outs(&self) -> &Vec<TxOutput> {
-        &self.tx_outs
+    pub fn get_tx_outs(&self) -> Vec<TxOutput> {
+        self.tx_outs.clone()
+    }
+
+    /// Returns the signature hash
+    pub fn sig_hash(&self, sig_hash_type: SigHashType) -> Vec<u8> {
+        let inputs = &self.tx_ins;
+        // Replace the script_sigs of these inputs with the script_pubkeys
+        let modified_inputs: Vec<TxInput> = inputs
+            .iter()
+            .map(|input| {
+                input.get_modified_input(self.testnet)
+            })
+            .collect();
+        let modified_tx = Self {
+            version: self.version,
+            tx_ins: modified_inputs,
+            tx_outs: self.get_tx_outs(),
+            locktime: self.locktime,
+            testnet: true
+        };
+        let mut serialized_tx = modified_tx.serialize();
+        let sighash = match sig_hash_type {
+            SigHashType::SigHashAll => 1u32.to_le_bytes(),
+            SigHashType::SigHashNone => 2u32.to_le_bytes(),
+            SigHashType::SigHashSingle => 3u32.to_le_bytes(),
+        };
+        dbg!(&sighash);
+        serialized_tx.extend_from_slice(&sighash);
+        hash256(&serialized_tx)
+    }
+}
+
+impl fmt::Display for Tx {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "tx: {}", self.id())?;
+        writeln!(f, "version: {}", self.version)?;
+        writeln!(f, "tx_ins:")?;
+        for (i, input) in self.tx_ins.iter().enumerate() {
+            writeln!(f, "\t{}: {}", i, input)?;
+        }
+        writeln!(f, "tx_outs:")?;
+        for (i, output) in self.tx_outs.iter().enumerate() {
+            writeln!(f, "\t{}: {}", i, hex::encode(output.serialize()))?;
+        }
+        writeln!(f, "locktime: {}", self.locktime)
     }
 }

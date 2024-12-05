@@ -45,7 +45,6 @@ impl Script {
                 commands.push(cmd);
                 count += data_length + 2;
             } else { // it is an op_code we add to the stack
-                dbg!(current_byte);
                 let op_code = current_byte;
                 commands.push(vec![op_code]);
             }
@@ -108,7 +107,7 @@ impl Script {
         Self { commands }
     }
 
-    pub fn evaluate(self, z: Vec<u8>) -> bool { // should z be a stream?
+    pub fn evaluate(self, z: Vec<u8>) -> bool { // z should be a U256
         let mut commands = self.commands.clone();
         dbg!(&commands);
         let mut stack = vec![];
@@ -153,12 +152,14 @@ impl fmt::Display for Script {
         
         self.commands.iter().try_fold((), |_, cmd| {
             if cmd.len() == 1 {
-                write!(f, "{} ", op_code_names[&cmd[0]])
+                let op_name = op_code_names.get(&cmd[0])
+                    .map_or(format!("NO OP CODE FOUND ({})", cmd[0]), |name| name.to_string());
+                writeln!(f, "\t     {} ", op_name)
             } else {
                 let mut hex_string = String::with_capacity(cmd.len() * 2);
                 cmd.iter()
                     .for_each(|byte| hex_string.push_str(&format!("{:02x}", byte)));
-                write!(f, "{} ", hex_string)
+                writeln!(f, "\t     {} ", hex_string)
             }
         })
     }
