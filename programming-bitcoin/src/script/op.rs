@@ -77,7 +77,7 @@ pub fn op_dup(stack: &mut Vec<Vec<u8>>) -> bool {
     true
 }
 
-// 136 - OP_EQUAL
+// 135 - OP_EQUAL
 fn op_equal(stack: &mut Vec<Vec<u8>>) -> bool {
     if stack.len() < 2 {
         return false;
@@ -86,6 +86,21 @@ fn op_equal(stack: &mut Vec<Vec<u8>>) -> bool {
     let item2 = stack.pop().unwrap();
     let result = if item1 == item2 { 1 } else { 0 };
     stack.push(encode_num(result));
+    true
+}
+
+// 136 - OP_EQUALVERIFY
+fn op_equalverify(stack: &mut Vec<Vec<u8>>) -> bool {
+    if !op_equal(stack) {
+        return false;
+    }
+    if stack.is_empty() {
+        return false;
+    }
+    let item = stack.pop().unwrap();
+    if decode_num(&item) == 0 {
+        return false;
+    }
     true
 }
 
@@ -180,6 +195,7 @@ pub fn create_op_code_functions() -> HashMap<u8, OpFunction> {
     op_code_functions.insert(86, OpFunction::StackOp(op_6));
     op_code_functions.insert(118, OpFunction::StackOp(op_dup));
     op_code_functions.insert(135, OpFunction::StackOp(op_equal)); // same signature as StackHashOp
+    op_code_functions.insert(136, OpFunction::StackOp(op_equalverify));
     op_code_functions.insert(147, OpFunction::StackOp(op_add));
     op_code_functions.insert(149, OpFunction::StackOp(op_mul)); // should be disabled
     op_code_functions.insert(169, OpFunction::StackOp(op_hash160));
@@ -200,8 +216,10 @@ pub fn create_op_code_names() -> HashMap<u8, &'static str> {
     op_code_names.insert(108, "OP_FROMALTSTACK");
     op_code_names.insert(118, "OP_DUP");
     op_code_names.insert(135, "OP_EQUAL");
+    op_code_names.insert(136, "OP_EQUALVERIFY");
     op_code_names.insert(147, "OP_ADD");
     op_code_names.insert(149, "OP_MUL"); // SHOULD BE DISABLED
+    op_code_names.insert(169, "OP_HASH160");
     // 172, 173, 174, 175
     op_code_names.insert(172, "OP_CHECKSIG");
     op_code_names.insert(173, "OP_CHECKSIGVERIFY");

@@ -140,7 +140,10 @@ impl Tx {
                 input.empty_script_sig()
             })
             .collect();
+        // can we remove this clone()?
         let mut current_input = modified_inputs[tx_index].clone();
+        // Can we deduce the sig_hash_type based on the last byte of the script_sig?
+        current_input.get_script_sig();
         current_input = current_input.replace_script_sig(self.testnet);
         modified_inputs[tx_index] = current_input;
         let modified_tx = Self {
@@ -161,10 +164,14 @@ impl Tx {
         hash256(&serialized_tx)
     }
 
-    // pub fn verify_input(index: usize) -> bool {
-        
-    //     true
-    // }
+    pub fn verify_input(&self, sig_hash_type: SigHashType, index: usize) -> bool {
+        let z = self.sig_hash(sig_hash_type, index);
+        let input: &TxInput = &self.tx_ins[index];
+        let script_sig = input.get_script_sig();
+        let script_pubkey = input.script_pubkey(self.testnet);
+        let combined_script = script_sig.concat(script_pubkey);
+        combined_script.evaluate(z)
+    }
 }
 
 impl fmt::Display for Tx {

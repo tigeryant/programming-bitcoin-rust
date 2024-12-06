@@ -111,6 +111,10 @@ impl TxInput {
         reversed.reverse();
         hex::encode(reversed)
     }
+
+    pub fn get_script_sig(&self) -> Script {
+        self.script_sig.clone()
+    }
 }
 
 
