@@ -132,15 +132,17 @@ impl Tx {
     }
 
     /// Returns the signature hash
-    pub fn sig_hash(&self, sig_hash_type: SigHashType) -> Vec<u8> {
+    pub fn sig_hash(&self, sig_hash_type: SigHashType, tx_index: usize) -> Vec<u8> {
         let inputs = &self.tx_ins;
-        // Replace the script_sigs of these inputs with the script_pubkeys
-        let modified_inputs: Vec<TxInput> = inputs
+        let mut modified_inputs: Vec<TxInput> = inputs
             .iter()
             .map(|input| {
-                input.get_modified_input(self.testnet)
+                input.empty_script_sig()
             })
             .collect();
+        let mut current_input = modified_inputs[tx_index].clone();
+        current_input = current_input.replace_script_sig(self.testnet);
+        modified_inputs[tx_index] = current_input;
         let modified_tx = Self {
             version: self.version,
             tx_ins: modified_inputs,
@@ -158,6 +160,11 @@ impl Tx {
         serialized_tx.extend_from_slice(&sighash);
         hash256(&serialized_tx)
     }
+
+    // pub fn verify_input(index: usize) -> bool {
+        
+    //     true
+    // }
 }
 
 impl fmt::Display for Tx {

@@ -19,7 +19,7 @@ fn test_sig_hash() {
     let tx = Tx::parse(&mut stream, false);
 
     // tests with sighash all
-    let z = tx.sig_hash(SigHashType::SigHashAll);
+    let z = tx.sig_hash(SigHashType::SigHashAll, 0);
     let z_hex = hex::encode(z);
     print!("Z: 0x{}", z_hex);
     let output = z_hex;
@@ -38,4 +38,9 @@ fn test_verify_signature() {
 
     let result = point.verify(z, signature);
     assert!(result);
+}
+
+#[test]
+fn test_verify_input() {
+
 }

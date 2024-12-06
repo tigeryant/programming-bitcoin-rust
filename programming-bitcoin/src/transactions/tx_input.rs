@@ -77,6 +77,18 @@ impl TxInput {
         tx.get_tx_outs()[index].get_amount()
     }
 
+    /// Returns a TxInput whose script_sig field is empty (0)
+    pub fn empty_script_sig(&self) -> Self {
+        let empty_commands= vec![vec![0]];
+        let empty_script_sig = Script::new(empty_commands);
+        Self {
+            prev_tx_id: self.prev_tx_id,
+            prev_index: self.prev_index,
+            script_sig: empty_script_sig,
+            sequence: self.sequence
+        }
+    } 
+
     /// Get the ScriptPubKey by looking up the tx hash
     pub fn script_pubkey(&self, testnet: bool) -> Script {
         let tx = &self.fetch_tx(testnet, true);
@@ -85,7 +97,7 @@ impl TxInput {
     }
 
     /// Returns a modified input (script_sig replaced with script_pubkey) for creating a signature hash
-    pub fn get_modified_input(&self, testnet: bool) -> Self {
+    pub fn replace_script_sig(&self, testnet: bool) -> Self {
         Self {
             prev_tx_id: self.prev_tx_id,
             prev_index: self.prev_index,
