@@ -172,6 +172,18 @@ impl Tx {
         let combined_script = script_sig.concat(script_pubkey);
         combined_script.evaluate(z)
     }
+
+    /// Verify the transaction
+    pub fn verify(&self) -> bool {
+        // fee() will always be positive as it returns u64
+
+        for (index, _) in self.tx_ins.iter().enumerate() {
+            if !self.verify_input(SigHashType::SigHashAll, index) {
+                return false
+            }
+        }
+        true
+    }
 }
 
 impl fmt::Display for Tx {
