@@ -38,3 +38,54 @@ pub fn encode_base58_checksum(bytes: &[u8]) -> String {
     result.extend_from_slice(&hash[0..4]);
     encode_base58(&result)
 }
+
+pub fn decode_base58(address: &str) -> Result<Vec<u8>, String> {
+    // Base58 chars
+    let base58_chars: Vec<char> = BASE58_ALPHABET.chars().collect();
+    
+    // Map characters to their index in the Base58 alphabet
+    let mut base58_map = std::collections::HashMap::new();
+    for (i, &c) in base58_chars.iter().enumerate() {
+        base58_map.insert(c, i as u8);
+    }
+
+    // Decode the string
+    let mut decoded: Vec<u8> = vec![];
+    for c in address.chars() {
+        let value = base58_map.get(&c).ok_or_else(|| format!("Invalid Base58 character: {}", c))?;
+        let mut carry = *value as u32;
+        for byte in decoded.iter_mut().rev() {
+            carry += (*byte as u32) * 58;
+            *byte = (carry % 256) as u8;
+            carry /= 256;
+        }
+        while carry > 0 {
+            decoded.insert(0, (carry % 256) as u8);
+            carry /= 256;
+        }
+    }
+
+    // Handle leading zeroes in the Base58 string
+    for c in address.chars() {
+        if c == '1' {
+            decoded.insert(0, 0);
+        } else {
+            break;
+        }
+    }
+
+    // Validate checksum
+    if decoded.len() < 4 {
+        return Err("Invalid address length".to_string());
+    }
+    let (payload, checksum) = decoded.split_at(decoded.len() - 4);
+
+    use sha2::{Digest, Sha256};
+    let computed_checksum = Sha256::digest(Sha256::digest(payload));
+    if &computed_checksum[..4] != checksum {
+        return Err("Checksum verification failed".to_string());
+    }
+
+    // Return the hash (payload without the version byte)
+    Ok(payload[1..].to_vec())
+}
