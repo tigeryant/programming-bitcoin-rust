@@ -80,6 +80,7 @@ pub fn decode_base58(address: &str) -> Result<Vec<u8>, String> {
     }
     let (payload, checksum) = decoded.split_at(decoded.len() - 4);
 
+    // there is already a utility function for this - see hash256
     use sha2::{Digest, Sha256};
     let computed_checksum = Sha256::digest(Sha256::digest(payload));
     if &computed_checksum[..4] != checksum {

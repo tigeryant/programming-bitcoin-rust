@@ -144,6 +144,14 @@ impl Script {
         }
         true
     }
+
+    /// Takes a hash160 and returns the p2pkh script_pubkey
+    pub fn p2pkh_script(h160: String) -> Self {
+        let raw_hash = hex::decode(h160).unwrap();
+        let commands: Vec<Vec<u8>> = vec![vec![0x76], vec![0xa9], raw_hash, vec![0x88], vec![0xac]];
+        // script_pubkey
+        Script::new(commands)
+    }
 }
 
 impl fmt::Display for Script {
