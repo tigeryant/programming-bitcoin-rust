@@ -1,5 +1,5 @@
 pub enum SigHashType {
-    SigHashAll = 1,
-    SigHashNone = 2,
-    SigHashSingle = 3,
+    SigHashAll = 0x01,
+    SigHashNone = 0x02,
+    SigHashSingle = 0x03,
 }

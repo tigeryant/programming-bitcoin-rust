@@ -6,17 +6,19 @@ use super::tx::Tx;
 
 #[derive(Clone, Debug)]
 pub struct TxInput {
-    prev_tx_id: [u8; 32], // should this be prev?
+    prev_tx_id: [u8; 32], // should this be prev? // this should be stored in little endian
     prev_index: [u8; 4], // should this be prev?
     script_sig: Script,
     sequence: [u8; 4]
 }
 
 impl TxInput {
-    // do we need this method?
-    pub fn new(prev_tx_id: [u8; 32], prev_index: [u8; 4], script_sig: Script, sequence: [u8; 4]) -> Self {
+    // takes prev_tx_id in big endian, reverses it to little endian
+    pub fn new(prev_tx_id_be: [u8; 32], prev_index: [u8; 4], script_sig: Script, sequence: [u8; 4]) -> Self {
+        let mut tx_id_le = prev_tx_id_be;
+        tx_id_le.reverse();
         Self {
-            prev_tx_id,
+            prev_tx_id: tx_id_le,
             prev_index,
             script_sig,
             sequence
@@ -64,7 +66,7 @@ impl TxInput {
     }
 
     pub fn fetch_tx(&self, testnet: bool, fresh: bool) -> Tx {
-        let tx_id_hex = self.get_prev_tx_id();
+        let tx_id_hex = self.get_prev_tx_id_be();
         // need a fetcher instance here - may not be the best place for this
         let fetcher = TxFetcher::build();
         TxFetcher::fetch(&fetcher, &tx_id_hex, testnet, fresh).unwrap()
@@ -106,7 +108,8 @@ impl TxInput {
         }
     }
 
-    fn get_prev_tx_id(&self) -> String {
+    /// reverses from little endian (stored and serialized) to big (displayed)
+    fn get_prev_tx_id_be(&self) -> String {
         let mut reversed = self.prev_tx_id;
         reversed.reverse();
         hex::encode(reversed)
@@ -120,11 +123,11 @@ impl TxInput {
 
 impl std::fmt::Display for TxInput {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "TxInput {{ \n  prev_tx_id: {}\n  prev_index: {}\n  script_sig: \n{}  sequence: {} \n}}", 
-            hex::encode(self.prev_tx_id),
+        write!(f, "TxInput {{ \n  prev_tx_id (big endian): {}\n  prev_index: {}\n  script_sig: \n{}  sequence: {} \n}}", 
+            self.get_prev_tx_id_be(), // the encoding is not reversing it, and it's being displayed in big endian
             u32::from_le_bytes(self.prev_index),
             self.script_sig,
-            u32::from_le_bytes(self.sequence)
+            hex::encode(self.sequence)
         )
     }
 }

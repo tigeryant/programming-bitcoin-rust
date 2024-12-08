@@ -16,6 +16,13 @@ impl Script {
         }
     }
 
+    pub fn new_empty_script() -> Self {
+        let commands = vec![];
+        Self {
+            commands
+        }
+    }
+
     /// Parses a script from a byte vector
     pub fn parse(reader: &mut Cursor<Vec<u8>>) -> Result<Script, Error> {
         let mut commands = vec![];
@@ -146,8 +153,9 @@ impl Script {
     }
 
     /// Takes a hash160 and returns the p2pkh script_pubkey
-    pub fn p2pkh_script(h160: String) -> Self {
-        let raw_hash = hex::decode(h160).unwrap();
+    pub fn p2pkh_script(h160: Vec<u8>) -> Self {
+        let raw_hash = h160;
+        // OP_DUP, OP_HASH160, hash160 data element, OP_EQUALVERIFY, OP_CHECKSIG
         let commands: Vec<Vec<u8>> = vec![vec![0x76], vec![0xa9], raw_hash, vec![0x88], vec![0xac]];
         // script_pubkey
         Script::new(commands)
@@ -157,7 +165,10 @@ impl Script {
 impl fmt::Display for Script {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let op_code_names = create_op_code_names();
-        
+
+        // First write the script length
+        writeln!(f, "Length: {} byte(s)", self.raw_serialize().len())?;
+        writeln!(f, "Data:")?;
         self.commands.iter().try_fold((), |_, cmd| {
             if cmd.len() == 1 {
                 let op_name = op_code_names.get(&cmd[0])

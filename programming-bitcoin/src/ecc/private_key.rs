@@ -1,3 +1,4 @@
+use num_bigint::BigUint;
 use primitive_types::U256;
 use crate::utils::base58::encode_base58_checksum;
 use crate::{ecc::point::Point, ecc::signature::Signature};
@@ -24,7 +25,7 @@ impl PrivateKey {
         self.point
     }
 
-    pub fn sign(self, z: U256) -> Signature {
+    pub fn sign(&self, z: U256) -> Signature {
         // Generate random k between 0 and N
         // Should be using cryptographic randomness here
         let k = self.deterministic_k(z);
@@ -35,10 +36,28 @@ impl PrivateKey {
         let r = k_times_g.x().unwrap();
         
         // Calculate k_inv using Fermat's little theorem
-        let k_inv = k.pow(S256Params::n() - U256::from(2)) % S256Params::n();
+        // let k_inv = k.pow(S256Params::n() - U256::from(2)) % S256Params::n();
+        let k_big = BigUint::from_bytes_be(&k.to_big_endian());
+        let n_minus_2 = BigUint::from_bytes_be(&(S256Params::n() - U256::from(2)).to_big_endian());
+        let n = BigUint::from_bytes_be(&S256Params::n().to_big_endian());
+        let k_inv_big = k_big.modpow(&n_minus_2, &n);
+        let k_inv = U256::from_big_endian(&k_inv_big.to_bytes_be());
         
         // Calculate s = (z + r*secret) * k_inv % N
-        let mut s = ((z + r.num() * self.secret) * k_inv) % S256Params::n();
+        // let mut s = ((z + r.num() * self.secret) * k_inv) % S256Params::n();
+
+        // Convert existing values to BigUint
+        let z_big = BigUint::from_bytes_be(&z.to_big_endian());
+        let r_big = BigUint::from_bytes_be(&r.num().to_big_endian());
+        let secret_big = BigUint::from_bytes_be(&self.secret.to_big_endian());
+        let k_inv_big = BigUint::from_bytes_be(&k_inv.to_big_endian());
+        let n_big = BigUint::from_bytes_be(&S256Params::n().to_big_endian());
+
+        // Calculate s using BigUint operations
+        let s_big = ((&z_big + &r_big * &secret_big) * &k_inv_big) % &n_big;
+
+        // Convert back to U256
+        let mut s = U256::from_big_endian(&s_big.to_bytes_be());
         
         // If s > N/2, set s = N - s (to ensure low S values)
         if s > S256Params::n() / 2 {

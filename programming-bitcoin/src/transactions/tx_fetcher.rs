@@ -16,6 +16,7 @@ impl TxFetcher {
     }
 
     /// Fetch a tx from the UTXO set or return it from the cache
+    // expects the tx_id in big endian encoding
     pub fn fetch(&self, tx_id: &str, testnet: bool, fresh: bool) -> Result<Tx, Box<dyn std::error::Error>> { // note the use of dynamic dispatch here
         let mut cache = self.cache.borrow_mut();
         if fresh || !cache.contains_key(tx_id) {
@@ -26,9 +27,10 @@ impl TxFetcher {
             let mut cursor = Cursor::new(raw);
             let tx = Tx::parse(&mut cursor, testnet); // do we need the ? operator? -> can only be used for certain methods
             // let tx = Tx::parse(&mut cursor)?;
+            // println!("{}", &tx);
             
             if tx.id() != tx_id {
-                return Err(format!("not the same id: {} vs {}", tx.id(), tx_id).into());
+                return Err(format!("not the same id: tx.id(): {} vs tx_id: {}", tx.id(), tx_id).into());
             }
             cache.insert(tx_id.to_string(), tx);
         }

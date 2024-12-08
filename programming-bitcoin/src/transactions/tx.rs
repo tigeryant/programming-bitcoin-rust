@@ -39,7 +39,7 @@ impl Tx {
     }
 
     // Serialize method
-    fn serialize(&self) -> Vec<u8> {
+    pub fn serialize(&self) -> Vec<u8> {
         let mut result = Vec::new();
         
         // Serialize version
@@ -72,6 +72,16 @@ impl Tx {
         let mut buffer = [0u8; 4];
         stream.read_exact(&mut buffer).unwrap();
         let version = u32::from_le_bytes(buffer);
+
+        // Peek at the next byte to check for SegWit marker
+        let mut marker_flag = [0u8; 2];
+        stream.read_exact(&mut marker_flag).unwrap();
+        
+        let is_segwit = marker_flag == [0x00, 0x01];
+        if !is_segwit {
+            // Rewind if this isn't a SegWit transaction
+            stream.set_position(stream.position() - 2);
+        }
 
         // Parse inputs
         // Add proper error handling
@@ -188,7 +198,7 @@ impl Tx {
 
 impl fmt::Display for Tx {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "tx: {}", self.id())?;
+        writeln!(f, "tx_id: {}", self.id())?;
         writeln!(f, "version: {}", self.version)?;
         writeln!(f, "tx_ins:")?;
         for (i, input) in self.tx_ins.iter().enumerate() {
@@ -196,7 +206,7 @@ impl fmt::Display for Tx {
         }
         writeln!(f, "tx_outs:")?;
         for (i, output) in self.tx_outs.iter().enumerate() {
-            writeln!(f, "\t{}: {}", i, hex::encode(output.serialize()))?;
+            writeln!(f, "\t{}: {}", i, output)?;
         }
         writeln!(f, "locktime: {}", self.locktime)
     }

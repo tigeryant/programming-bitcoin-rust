@@ -1,5 +1,5 @@
+use std::fmt;
 use std::io::{Cursor, Read};
-
 use crate::script::script::Script;
 
 #[derive(Clone, Debug)]
@@ -9,6 +9,13 @@ pub struct TxOutput {
 }
 
 impl TxOutput {
+    pub fn new(amount: u64, script_pubkey: Script) -> Self {
+        Self {
+            amount,
+            script_pubkey
+        }
+    }
+
     pub fn parse(cursor: &mut Cursor<Vec<u8>>) -> Self {
         let mut amount_buffer= [0u8; 8];
         cursor.read_exact(&mut amount_buffer).unwrap();
@@ -40,5 +47,14 @@ impl TxOutput {
 
     pub fn get_script_pubkey(&self) -> Script {
         self.script_pubkey.clone()
+    }
+}
+
+
+
+impl fmt::Display for TxOutput {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(f, "amount: {} satoshis", self.amount)?;
+        writeln!(f, "script_pubkey:\n{}", self.script_pubkey)
     }
 }
