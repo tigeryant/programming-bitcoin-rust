@@ -34,7 +34,7 @@ impl Tx {
     }
     
     fn hash(&self) -> Vec<u8> {
-        let serialized = self.serialize();
+        let serialized = self.serialize_legacy();
         let hash = hash256(&serialized);
         // Reverse to get little endian
         hash.into_iter().rev().collect()
