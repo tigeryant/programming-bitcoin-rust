@@ -59,8 +59,9 @@ fn test_create_p2pkh_tx() {
     let prev_index: [u8; 4] = 13u32.to_le_bytes();
     let empty_script_sig = Script::new_empty_script();
     let sequence: [u8; 4] = hex::decode("ffffffff").unwrap().try_into().unwrap();
+    let witness: Option<Vec<Vec<u8>>> = None;
 
-    let tx_in = TxInput::new(prev_tx_id, prev_index, empty_script_sig, sequence);
+    let tx_in = TxInput::new(prev_tx_id, prev_index, empty_script_sig, sequence, witness);
 
     let change_amount: u64 = (0.33_f64 * 100_000_000.0) as u64;
     let change_h160 = decode_base58("mzx5YhAH9kNHtcN481u6WkjeHjYtVeKVh2").unwrap();
@@ -73,7 +74,7 @@ fn test_create_p2pkh_tx() {
     let target_output = TxOutput::new(target_amount, target_script);
 
     // transaction input is on testnet
-    let tx = Tx::new(1, vec![tx_in], vec![change_output.clone(), target_output.clone()], 0, true);
+    let tx = Tx::new(1, vec![tx_in], vec![change_output.clone(), target_output.clone()], 0, true, false);
     let output_serialized_tx1 = hex::encode(tx.serialize());
     // println!("{serialized_tx1}");
     // println!("{tx}");

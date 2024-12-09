@@ -9,22 +9,25 @@ pub struct TxInput {
     prev_tx_id: [u8; 32], // should this be prev? // this should be stored in little endian
     prev_index: [u8; 4], // should this be prev?
     script_sig: Script,
-    sequence: [u8; 4]
+    sequence: [u8; 4],
+    witness: Option<Vec<Vec<u8>>>
 }
 
 impl TxInput {
     // takes prev_tx_id in big endian, reverses it to little endian
-    pub fn new(prev_tx_id_be: [u8; 32], prev_index: [u8; 4], script_sig: Script, sequence: [u8; 4]) -> Self {
+    pub fn new(prev_tx_id_be: [u8; 32], prev_index: [u8; 4], script_sig: Script, sequence: [u8; 4], witness: Option<Vec<Vec<u8>>>) -> Self {
         let mut tx_id_le = prev_tx_id_be;
         tx_id_le.reverse();
         Self {
             prev_tx_id: tx_id_le,
             prev_index,
             script_sig,
-            sequence
+            sequence,
+            witness
         }
     }
 
+    // may contain a witness - None for now
     pub fn parse(cursor: &mut Cursor<Vec<u8>>) -> Self {
         // read 32 bytes for prev_tx (little endian)
         let mut prev_tx_id= [0u8; 32];
@@ -36,11 +39,13 @@ impl TxInput {
         // read 4 bytes for the sequence
         let mut sequence= [0u8; 4];
         cursor.read_exact(&mut sequence).unwrap();
+        let witness: Option<Vec<Vec<u8>>> = None;
         Self {
             prev_tx_id,
             prev_index,
             script_sig,
-            sequence
+            sequence,
+            witness
         }
     }
 
@@ -79,7 +84,7 @@ impl TxInput {
         tx.get_tx_outs()[index].get_amount()
     }
 
-    /// Returns a TxInput whose script_sig field is empty (0)
+    /// Returns a TxInput whose script_sig field is empty (0), witness is none
     pub fn empty_script_sig(&self) -> Self {
         let empty_commands= vec![vec![0]];
         let empty_script_sig = Script::new(empty_commands);
@@ -87,7 +92,8 @@ impl TxInput {
             prev_tx_id: self.prev_tx_id,
             prev_index: self.prev_index,
             script_sig: empty_script_sig,
-            sequence: self.sequence
+            sequence: self.sequence,
+            witness: self.witness.clone()
         }
     } 
 
@@ -104,7 +110,8 @@ impl TxInput {
             prev_tx_id: self.prev_tx_id,
             prev_index: self.prev_index,
             script_sig: self.script_pubkey(testnet),
-            sequence: self.sequence
+            sequence: self.sequence,
+            witness: self.witness.clone()
         }
     }
 
@@ -117,6 +124,16 @@ impl TxInput {
 
     pub fn get_script_sig(&self) -> Script {
         self.script_sig.clone()
+    }
+
+    pub fn set_witness(&self, witness: Option<Vec<Vec<u8>>>) -> Self {
+        Self {
+            prev_tx_id: self.prev_tx_id,
+            prev_index: self.prev_index,
+            script_sig: self.script_sig.clone(),
+            sequence: self.sequence,
+            witness
+        }
     }
 }
 

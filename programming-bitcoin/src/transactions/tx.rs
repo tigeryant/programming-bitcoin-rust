@@ -12,17 +12,19 @@ pub struct Tx {
     tx_ins: Vec<TxInput>,
     tx_outs: Vec<TxOutput>,
     locktime: u32,
-    testnet: bool
+    testnet: bool,
+    segwit: bool
 }
 
 impl Tx {
-    pub fn new(version: u32, tx_ins: Vec<TxInput>, tx_outs: Vec<TxOutput>, locktime: u32, testnet: bool) -> Self { // is this necessary?
+    pub fn new(version: u32, tx_ins: Vec<TxInput>, tx_outs: Vec<TxOutput>, locktime: u32, testnet: bool, segwit: bool) -> Self { // is this necessary?
         Self {
             version,
             tx_ins,
             tx_outs,
             locktime,
-            testnet
+            testnet,
+            segwit
         }
     }
 
@@ -69,19 +71,24 @@ impl Tx {
     }
 
     pub fn parse(stream: &mut Cursor<Vec<u8>>, testnet: bool) -> Self {
+        stream.set_position(4);
+        let mut marker_byte = [0u8; 1];
+        stream.read_exact(&mut marker_byte).unwrap();
+        let marker = marker_byte[0];
+        stream.set_position(0);
+        // consider using traits to use different methods here
+        if marker == 0x00 { // must be a segwit tx
+            Self::parse_segwit(stream, testnet)
+        } else {
+            Self::parse_legacy(stream, testnet)
+        }
+    }
+
+    /// Parses legacy (pre-segwit) transactions
+    fn parse_legacy(stream: &mut Cursor<Vec<u8>>, testnet: bool) -> Self {
         let mut buffer = [0u8; 4];
         stream.read_exact(&mut buffer).unwrap();
         let version = u32::from_le_bytes(buffer);
-
-        // Peek at the next byte to check for SegWit marker
-        let mut marker_flag = [0u8; 2];
-        stream.read_exact(&mut marker_flag).unwrap();
-        
-        let is_segwit = marker_flag == [0x00, 0x01];
-        if !is_segwit {
-            // Rewind if this isn't a SegWit transaction
-            stream.set_position(stream.position() - 2);
-        }
 
         // Parse inputs
         // Add proper error handling
@@ -113,13 +120,87 @@ impl Tx {
         // stream.read_exact(&mut testnet_buffer).unwrap();
         // let testnet = testnet_buffer[0] != 0;
         // let testnet = true;
+        let segwit = false;
 
         Self {
             version,
             tx_ins,
             tx_outs,
             locktime,
-            testnet 
+            testnet,
+            segwit
+        }
+    }
+
+    fn parse_segwit(stream: &mut Cursor<Vec<u8>>, testnet: bool) -> Self {
+        // first, read the version
+        let mut buffer = [0u8; 4];
+        stream.read_exact(&mut buffer).unwrap();
+        let version = u32::from_le_bytes(buffer);
+
+        // read the next two bytes
+        let mut marker_bytes = [0u8; 2];
+        stream.read_exact(&mut marker_bytes).unwrap();
+        if marker_bytes != [0x00, 0x01] {
+            panic!("Not a segwit transaction - marker bytes: {:?}", marker_bytes);
+        }
+
+        // Parse inputs
+        // Add proper error handling
+        let input_count = read_varint(stream).unwrap();
+        
+        let mut tx_ins: Vec<TxInput> = (0..input_count)
+            .map(|_| {
+                TxInput::parse(stream)
+            })
+            .collect();
+
+        // Parse outputs
+        // Add proper error handling
+        let output_count = read_varint(stream).unwrap();
+        
+        let tx_outs: Vec<TxOutput> = (0..output_count)
+            .map(|_| {
+                TxOutput::parse(stream)
+            })
+            .collect();
+
+        // Parse the witness data for each input
+        // change this to use map
+        tx_ins = tx_ins
+            .into_iter()
+            .map(|input| {
+                let witness_count = read_varint(stream).unwrap();
+                let mut items = vec![];
+                for _ in 0..witness_count {
+                    let length = read_varint(stream).unwrap() as usize;
+                    if length == 0 {
+                        items.push(vec![0]);
+                    } else {
+                        let mut witness_item = vec![0u8; length];
+                        stream.read_exact(&mut witness_item).unwrap();
+                        items.push(witness_item);
+                    }
+                    input.set_witness(Some(items.clone()));
+                }
+                input
+            })
+            .collect();
+
+        // Parse the locktime
+        let mut buffer = [0u8; 4];
+        stream.read_exact(&mut buffer).unwrap();
+        let locktime = u32::from_le_bytes(buffer);
+
+        let segwit = true;
+
+        Self {
+            version,
+            tx_ins,
+            tx_outs,
+            locktime,
+            testnet,
+            segwit
         }
     }
 
@@ -161,7 +242,8 @@ impl Tx {
             tx_ins: modified_inputs,
             tx_outs: self.get_tx_outs(),
             locktime: self.locktime,
-            testnet: true
+            testnet: self.testnet,
+            segwit: self.segwit
         };
         let mut serialized_tx = modified_tx.serialize();
         let sighash = match sig_hash_type {
