@@ -42,6 +42,14 @@ impl Tx {
 
     // Serialize method
     pub fn serialize(&self) -> Vec<u8> {
+        if self.segwit {
+            self.serialize_segwit()
+        } else {
+            self.serialize_legacy()
+        }
+    }
+
+    fn serialize_legacy(&self) -> Vec<u8> {
         let mut result = Vec::new();
         
         // Serialize version
@@ -67,6 +75,55 @@ impl Tx {
 
         // We omit the testnet field - this is not part of the serialized tx
         
+        result
+    }
+
+    fn serialize_segwit(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+
+        // Serialize version
+        result.extend_from_slice(&self.version.to_le_bytes());
+
+        // Serialize the marker byte and flag
+        let marker_bytes: [u8; 2] = [0x00, 0x01];
+        result.extend_from_slice(&marker_bytes);
+
+        // Serialize tx_ins
+        let inputs = &self.tx_ins;
+        result.extend_from_slice(&encode_varint(inputs.len() as u64));
+
+        for input in inputs {
+            result.extend(input.serialize());
+        }
+
+        // Serialize tx_outs
+        let outputs = self.tx_outs.clone();
+        result.extend_from_slice(&encode_varint(outputs.len() as u64));
+        for output in outputs {
+            result.extend(output.serialize());
+        }
+
+        // iterate over the tx_ins
+        self.tx_ins.clone()
+            .into_iter()
+            .for_each(|input| {
+                let length = input.witness_length();
+                result.extend_from_slice(&[length]);
+
+                let witness = input.get_witness().unwrap();
+                for item in witness {
+                    if item.len() == 1 {
+                        result.extend_from_slice(&item);
+                    } else {
+                        result.extend_from_slice(&encode_varint(item.len() as u64));
+                        result.extend_from_slice(&item);
+                    }
+                }
+            });
+
+        // Serialize locktime (4 bytes, little endian)
+        result.extend_from_slice(&self.locktime.to_le_bytes());
+
         result
     }
 

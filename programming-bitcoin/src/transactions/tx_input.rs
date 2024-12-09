@@ -135,6 +135,14 @@ impl TxInput {
             witness
         }
     }
+
+    pub fn witness_length(&self) -> u8 {
+        self.witness.as_ref().map_or(0, |w| w.len() as u8)
+    }
+
+    pub fn get_witness(self) -> Option<Vec<Vec<u8>>> {
+        self.witness
+    }
 }
 
 
