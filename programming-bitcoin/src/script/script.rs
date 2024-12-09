@@ -114,7 +114,7 @@ impl Script {
         Self { commands }
     }
 
-    pub fn evaluate(self, z: Vec<u8>) -> bool { // z should be a U256
+    pub fn evaluate(self, z: Vec<u8>, witness: Option<Vec<Vec<u8>>>) -> bool { // z should be a U256
         let mut commands = self.commands.clone();
         dbg!(&commands);
         let mut stack = vec![];
@@ -141,6 +141,14 @@ impl Script {
             } else {
                 // Handle data element by pushing to stack
                 stack.push(cmd.clone());
+                // Check for native segwit (P2WPKH)
+                if stack.len() == 2 && stack[0] == vec![] && stack[1].len() == 20 {
+                    let h160 = stack.pop().unwrap();
+                    stack.pop();
+                    commands.extend(witness.clone().unwrap());
+                    commands.extend(Script::p2pkh_script(h160).get_commands());
+                }
+
             }
         }
         if stack.is_empty() {
@@ -159,6 +167,24 @@ impl Script {
         let commands: Vec<Vec<u8>> = vec![vec![0x76], vec![0xa9], raw_hash, vec![0x88], vec![0xac]];
         // script_pubkey
         Script::new(commands)
+    }
+
+    pub fn is_p2wpkh(&self) -> bool {
+        let length_2 = self.commands.len() == 2;
+        let first_byte_zero = self.commands[0] == vec![0x00];
+        let second_element_data = self.commands[1].len() > 1;
+        let data_20_long = self.commands[1].len() == 20;
+
+        length_2 && first_byte_zero && second_element_data && data_20_long
+    }
+
+    /// Takes a hash160 and returns the p2wpkh script_pubkey
+    pub fn p2wpkh_script(h160: Vec<u8>) -> Self {
+        Self::new(vec![vec![0x00], h160])
+    }
+
+    pub fn get_commands(self) -> Vec<Vec<u8>> {
+        self.commands
     }
 }
 

@@ -1,5 +1,6 @@
 use std::io::{Cursor, Read};
 use std::fmt;
+use crate::script::script::Script;
 use crate::utils::hash256::hash256;
 use crate::utils::varint::{ read_varint, encode_varint };
 use crate::transactions::tx_input::TxInput;
@@ -314,12 +315,24 @@ impl Tx {
     }
 
     pub fn verify_input(&self, sig_hash_type: SigHashType, index: usize) -> bool {
-        let z = self.sig_hash(sig_hash_type, index);
+        // z will be calculated differently for a segwit tx
         let input: &TxInput = &self.tx_ins[index];
-        let script_sig = input.get_script_sig();
         let script_pubkey = input.script_pubkey(self.testnet);
+        // later we need to deal with p2sh-p2wphk (the wrapped version)
+        // for now, deal with p2wpkh
+        let z: Vec<u8>;
+        let witness;
+        if script_pubkey.is_p2wpkh() {
+            z = self.sig_hash_bip143(index, None, None);
+            witness = input.clone().get_witness();
+        } else { // legacy tx
+            z = self.sig_hash(sig_hash_type, index);
+            witness = None;
+        }
+
+        let script_sig = input.get_script_sig();
         let combined_script = script_sig.concat(script_pubkey);
-        combined_script.evaluate(z)
+        combined_script.evaluate(z, witness) // update this method after
     }
 
     /// Verify the transaction
@@ -333,6 +346,86 @@ impl Tx {
         }
         true
     }
+
+    /// Returns a byte vector of the signature hash to be signed for the input at this index
+    fn sig_hash_bip143(&self, input_index: usize, redeem_script: Option<Script>, witness_script: Option<Script>) -> Vec<u8> {
+        // per BIP143 spec
+        let tx_in = self.tx_ins[input_index].clone();
+
+        let mut result = vec![];
+        result.extend_from_slice(&self.version.to_le_bytes());
+
+        result.extend_from_slice(&self.hash_prevouts());
+        result.extend_from_slice(&self.hash_sequence());
+        result.extend_from_slice(&tx_in.get_prev_tx_id_le()); // Previous tx id in little-endian
+        result.extend_from_slice(&tx_in.get_prev_index()); // 4-byte little-endian index
+
+        // let script_code: Vec<u8>;
+        // if witness_script.is_some() {
+            // TODO implement
+            // script_code = witness_script.serialize()
+        // } else if redeem_script.is_some() {
+            // TODO implement
+            // script_code = p2pkh_script(redeem_script.cmds[1]).serialize()
+        // } else {
+        let script_code = Script::p2pkh_script(tx_in.script_pubkey(self.testnet).get_commands()[1].clone()).serialize();
+        // }
+        result.extend_from_slice(&script_code);
+
+        // Add tx_in value in little endian (8 bytes)
+        result.extend_from_slice(&tx_in.value().to_le_bytes());
+
+        // Add tx_in sequence in little endian (4 bytes)
+        result.extend_from_slice(&tx_in.get_sequence());
+
+        // Add hash of all outputs
+        result.extend_from_slice(&self.hash_outputs());
+
+        // Add locktime in little endian (4 bytes)
+        result.extend_from_slice(&self.locktime.to_le_bytes());
+
+        // Add SIGHASH_ALL in little endian (4 bytes)
+        result.extend_from_slice(&1u32.to_le_bytes());
+
+        // Hash the result and return
+        hash256(&result)
+    }
+    
+    fn hash_prevouts(&self) -> Vec<u8> {
+        let mut all_prevouts = Vec::new();
+        let mut all_sequence = Vec::new();
+        
+        for tx_in in &self.tx_ins {
+            // Add prev_tx in little endian and prev_index
+            all_prevouts.extend(tx_in.get_prev_tx_id_le());
+            all_prevouts.extend(tx_in.get_prev_index());
+            // Add sequence in little endian
+            all_sequence.extend_from_slice(&tx_in.get_sequence());
+        }
+        
+        hash256(&all_prevouts)
+    }
+    
+    fn hash_sequence(&self) -> Vec<u8> {
+        let mut all_sequence = Vec::new();
+        
+        for tx_in in &self.tx_ins {
+            all_sequence.extend_from_slice(&tx_in.get_sequence());
+        }
+        
+        hash256(&all_sequence)
+    }
+    
+    fn hash_outputs(&self) -> Vec<u8> {
+        let mut all_outputs = Vec::new();
+        
+        for tx_out in &self.tx_outs {
+            all_outputs.extend(tx_out.serialize());
+        }
+        
+        hash256(&all_outputs)
+    }
+
 }
 
 impl fmt::Display for Tx {

@@ -122,6 +122,14 @@ impl TxInput {
         hex::encode(reversed)
     }
 
+    pub fn get_prev_tx_id_le(&self) -> [u8; 32] {
+        self.prev_tx_id
+    }
+
+    pub fn get_prev_index(&self) -> [u8; 4] {
+        self.prev_index
+    }
+
     pub fn get_script_sig(&self) -> Script {
         self.script_sig.clone()
     }
@@ -142,6 +150,10 @@ impl TxInput {
 
     pub fn get_witness(self) -> Option<Vec<Vec<u8>>> {
         self.witness
+    }
+
+    pub fn get_sequence(&self) -> [u8; 4] {
+        self.sequence
     }
 }
 
