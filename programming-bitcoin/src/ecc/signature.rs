@@ -40,7 +40,7 @@ impl Signature {
         result.extend_from_slice(&rbin);
         
         // Convert s to big-endian bytes and trim leading zeros
-        let mut sbin: Vec<u8> = self.r.to_big_endian().to_vec();
+        let mut sbin: Vec<u8> = self.s.to_big_endian().to_vec();
         while sbin.first() == Some(&0) && sbin.len() > 1 {
             sbin.remove(0);
         }

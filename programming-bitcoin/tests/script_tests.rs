@@ -15,7 +15,7 @@ fn evaluate_p2pk() {
     let script_sig = Script::new(vec![raw_sig]);
     let combined_script = script_sig.concat(script_pubkey);
 
-    let result = combined_script.evaluate(z);
+    let result = combined_script.evaluate(z, None);
     assert!(result);
 }
 
@@ -63,6 +63,6 @@ fn evaluate_basic_script() {
     let script_sig_commands: Vec<Vec<u8>> = vec![vec![0x52]];
     let script_sig = Script::new(script_sig_commands);
     let combined_script = script_sig.concat(script_pubkey.clone());
-    let result = combined_script.evaluate(dummy_z);
+    let result = combined_script.evaluate(dummy_z, None);
     assert!(result);
 }

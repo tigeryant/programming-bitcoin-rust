@@ -18,7 +18,7 @@ pub struct Tx {
 }
 
 impl Tx {
-    pub fn new(version: u32, tx_ins: Vec<TxInput>, tx_outs: Vec<TxOutput>, locktime: u32, testnet: bool, segwit: bool) -> Self { // is this necessary?
+    pub fn new(version: u32, tx_ins: Vec<TxInput>, tx_outs: Vec<TxOutput>, locktime: u32, testnet: bool, segwit: bool) -> Self {
         Self {
             version,
             tx_ins,
@@ -309,15 +309,14 @@ impl Tx {
             SigHashType::SigHashNone => 2u32.to_le_bytes(),
             SigHashType::SigHashSingle => 3u32.to_le_bytes(),
         };
-        dbg!(&sighash);
         serialized_tx.extend_from_slice(&sighash);
         hash256(&serialized_tx)
     }
 
     pub fn verify_input(&self, sig_hash_type: SigHashType, index: usize) -> bool {
-        // z will be calculated differently for a segwit tx
         let input: &TxInput = &self.tx_ins[index];
         let script_pubkey = input.script_pubkey(self.testnet);
+        // z will be calculated differently for a segwit tx
         // later we need to deal with p2sh-p2wphk (the wrapped version)
         // for now, deal with p2wpkh
         let z: Vec<u8>;
@@ -332,7 +331,7 @@ impl Tx {
 
         let script_sig = input.get_script_sig();
         let combined_script = script_sig.concat(script_pubkey);
-        combined_script.evaluate(z, witness) // update this method after
+        combined_script.evaluate(z, witness)
     }
 
     /// Verify the transaction

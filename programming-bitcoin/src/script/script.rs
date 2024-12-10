@@ -116,7 +116,6 @@ impl Script {
 
     pub fn evaluate(self, z: Vec<u8>, witness: Option<Vec<Vec<u8>>>) -> bool { // z should be a U256
         let mut commands = self.commands.clone();
-        dbg!(&commands);
         let mut stack = vec![];
         // let altstack = vec![];
         while !commands.is_empty() {
@@ -124,9 +123,9 @@ impl Script {
             let is_op_code = cmd.len() == 1; // if the command is of length 1, evaluate it as an op_code
             if is_op_code {
                 let op_code = cmd[0];
-                dbg!(op_code);
                 let names = op::create_op_code_names();
                 let op_name = *names.get(&op_code).unwrap();
+                dbg!(&op_name);
                 let operations = op::create_op_code_functions();
                 let op_function = operations.get(&op_code).unwrap().clone(); 
                 let operation_result: bool = match op_function {

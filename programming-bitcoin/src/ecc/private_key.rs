@@ -25,9 +25,10 @@ impl PrivateKey {
         self.point
     }
 
-    pub fn sign(&self, z: U256) -> Signature {
+    pub fn sign(&self, z: Vec<u8>) -> Signature {
         // Generate random k between 0 and N
         // Should be using cryptographic randomness here
+        let z = U256::from_big_endian(&z);
         let k = self.deterministic_k(z);
         
         // Calculate r = (k*G).x

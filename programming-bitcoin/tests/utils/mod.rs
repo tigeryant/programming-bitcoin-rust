@@ -1,4 +1,4 @@
-use programming_bitcoin::utils::{base58::decode_base58, rng};
+use programming_bitcoin::utils::{base58::decode_base58, rng, hash160::hash160};
 
 #[test]
 fn random_u256() {
@@ -23,4 +23,12 @@ fn test_decode_base58() {
     assert!(decoded2.is_ok());
     let expected_hash2 = String::from("62e907b15cbf27d5425399ebf6f0fb50ebb88f18");
     assert_eq!(expected_hash2, decoded_hex2);
+}
+
+#[test]
+fn test_hash160() {
+    let input = "0208d9652010687a9125f621e3687554bf14c46a7acf26ed80453ad8ce95955668";
+    let input_bytes = hex::decode(input).unwrap();
+    let result = hash160(&input_bytes);
+    println!("Hash160 result: {}", hex::encode(result));
 }
