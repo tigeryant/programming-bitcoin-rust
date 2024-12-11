@@ -1,6 +1,6 @@
 use std::io::Cursor;
 use primitive_types::U256;
-use programming_bitcoin::{ecc::{point::Point, private_key::PrivateKey, signature::Signature}, script::script::Script, transactions::{tx::Tx, tx_input::TxInput, tx_output::TxOutput}, utils::{base58::decode_base58, sig_hash_type::SigHashType}};
+use programming_bitcoin::{ecc::{point::Point, private_key::PrivateKey, signature::Signature}, script::script::Script, transactions::{input_signing_data::InputSigningData, tx::Tx, tx_input::TxInput, tx_output::TxOutput}, utils::{base58::decode_base58, sig_hash_type::SigHashType}};
 
 // add tests here for parsing the individual components of the tx - version, inputs, outputs, locktime (and testnet?)
 #[test]
@@ -137,6 +137,7 @@ fn test_construct_testnet_tx() {
     
     // transaction is on testnet
     let unsigned_tx = Tx::new(1, vec![unsigned_input.clone()], vec![target_output.clone()], 0, true, false);
+    // let signing_data = vec![InputSigningData::new(0, String::from("ee0b031ef58f9014c5b4c641dbc29c0ca086926eebd00be7b8df2c4e13a15e23"), SigHashType::SigHashAll, unsigned_input)];
     let signed_input = unsigned_tx.sign_input(0, "ee0b031ef58f9014c5b4c641dbc29c0ca086926eebd00be7b8df2c4e13a15e23", SigHashType::SigHashAll, unsigned_input);
 
     let signed_tx = Tx::new(1, vec![signed_input], vec![target_output.clone()], 0, true, false);

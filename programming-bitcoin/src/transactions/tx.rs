@@ -10,6 +10,8 @@ use crate::transactions::tx_input::TxInput;
 use crate::transactions::tx_output::TxOutput;
 use crate::utils::sig_hash_type::SigHashType;
 
+use super::input_signing_data::InputSigningData;
+
 #[derive(Clone, Debug)]
 pub struct Tx {
     version: u32,
@@ -449,6 +451,14 @@ impl Tx {
         TxInput::new(prev_tx_id, prev_index, script_sig, sequence, witness)
     }
 
+    pub fn sign_multiple_inputs(&self, input_signing_data: Vec<InputSigningData>) -> Vec<TxInput> {
+        input_signing_data
+            .into_iter()
+            .map(|data| {
+                self.sign_input(data.index, &data.private_key_str, data.sig_hash_type, data.input)
+            })
+            .collect()
+    }
 }
 
 impl fmt::Display for Tx {
