@@ -20,7 +20,7 @@ fn test_sig_hash() {
     let tx = Tx::parse(&mut stream, false);
 
     // tests with sighash all
-    let z = tx.sig_hash(SigHashType::SigHashAll, 0);
+    let z = tx.sig_hash(&SigHashType::SigHashAll, 0);
     let z_hex = hex::encode(z);
     print!("Z: 0x{}", z_hex);
     let output = z_hex;
@@ -126,31 +126,21 @@ fn test_construct_testnet_tx() {
     let sequence: [u8; 4] = hex::decode("ffffffff").unwrap().try_into().unwrap();
 
     // UTXO value is 0.00016214
-    let empty_tx_in = TxInput::new(prev_tx_id, prev_index, empty_script_sig, sequence, None);
+    let unsigned_input = TxInput::new(prev_tx_id, prev_index, empty_script_sig, sequence, None);
     
     // constructing the unsigned transaction
+    // works with 0.0007, 8, 9
     let target_amount: u64 =  (0.00009_f64 * 100_000_000.0) as u64;
     let target_h160 = decode_base58("mwmPBaschd3ukQzVkwfL1sHcBBJSUcmb8L").unwrap();
     let target_script = Script::p2pkh_script(target_h160);
     let target_output = TxOutput::new(target_amount, target_script);
     
     // transaction is on testnet
-    let unsigned_tx = Tx::new(1, vec![empty_tx_in], vec![target_output.clone()], 0, true, false);
-    
-    // signing the tx - getting z
-    let z = unsigned_tx.sig_hash(SigHashType::SigHashAll, 0);
-    // Private key associated with the public key of the output we are spending from
-    let private_key = PrivateKey::new(U256::from_str_radix("ee0b031ef58f9014c5b4c641dbc29c0ca086926eebd00be7b8df2c4e13a15e23", 16).unwrap());
-    let der = private_key.sign(z).der();
+    let unsigned_tx = Tx::new(1, vec![unsigned_input.clone()], vec![target_output.clone()], 0, true, false);
+    let signed_input = unsigned_tx.sign_input(0, "ee0b031ef58f9014c5b4c641dbc29c0ca086926eebd00be7b8df2c4e13a15e23", SigHashType::SigHashAll, unsigned_input);
 
-    // Signature concatenated with the sig hash type as 1 byte
-    let sig = [der, vec![SigHashType::SigHashAll as u8]].concat();
-    let sec = private_key.point().sec(true); // assuming compressed is true
-    // script sig for p2pkh is the signature, the sig hash and the pub key
-    let script_sig = Script::new(vec![sig, sec]);
-    // construct a new signed input and signed transaction - the input contains a populated script_sig
-    let tx_in_with_sig = TxInput::new(prev_tx_id, prev_index, script_sig, sequence, None);
-    let signed_tx = Tx::new(1, vec![tx_in_with_sig], vec![target_output.clone()], 0, true, false);
+    let signed_tx = Tx::new(1, vec![signed_input], vec![target_output.clone()], 0, true, false);
+    println!("Signed tx: {}", hex::encode(signed_tx.serialize()));
 
     // verify the input
     assert!(signed_tx.verify_input(SigHashType::SigHashAll, 0));

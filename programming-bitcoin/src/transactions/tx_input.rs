@@ -116,7 +116,7 @@ impl TxInput {
     }
 
     /// reverses from little endian (stored and serialized) to big (displayed)
-    fn get_prev_tx_id_be(&self) -> String {
+    pub fn get_prev_tx_id_be(&self) -> String {
         let mut reversed = self.prev_tx_id;
         reversed.reverse();
         hex::encode(reversed)

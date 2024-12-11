@@ -1,5 +1,8 @@
 use std::io::{Cursor, Read};
 use std::fmt;
+use primitive_types::U256;
+
+use crate::ecc::private_key::PrivateKey;
 use crate::script::script::Script;
 use crate::utils::hash256::hash256;
 use crate::utils::varint::{ read_varint, encode_varint };
@@ -281,7 +284,7 @@ impl Tx {
     }
 
     /// Returns the signature hash
-    pub fn sig_hash(&self, sig_hash_type: SigHashType, tx_index: usize) -> Vec<u8> {
+    pub fn sig_hash(&self, sig_hash_type: &SigHashType, tx_index: usize) -> Vec<u8> {
         let inputs = &self.tx_ins;
         let mut modified_inputs: Vec<TxInput> = inputs
             .iter()
@@ -325,7 +328,7 @@ impl Tx {
             z = self.sig_hash_bip143(index, None, None);
             witness = input.clone().get_witness();
         } else { // legacy tx
-            z = self.sig_hash(sig_hash_type, index);
+            z = self.sig_hash(&sig_hash_type, index);
             witness = None;
         }
 
@@ -423,6 +426,27 @@ impl Tx {
         }
         
         hash256(&all_outputs)
+    }
+
+    pub fn sign_input(&self, index: usize, private_key_str: &str, sig_hash_type: SigHashType, unsigned_input: TxInput) -> TxInput {
+        // signing the tx - getting z
+        let z = self.sig_hash(&sig_hash_type, index);
+        // Private key associated with the public key of the output we are spending from
+        let private_key = PrivateKey::new(U256::from_str_radix(private_key_str, 16).unwrap());
+        let der = private_key.sign(z).der();
+
+        // Signature concatenated with the sig hash type as 1 byte
+        let sig = [der, vec![sig_hash_type as u8]].concat();
+        let sec = private_key.point().sec(true); // assuming compressed is true
+        // script sig for p2pkh is the signature, the sig hash and the pub key
+        let script_sig = Script::new(vec![sig, sec]);
+        let mut prev_tx_id = [0u8; 32];
+        prev_tx_id.copy_from_slice(&hex::decode(unsigned_input.get_prev_tx_id_be()).unwrap());
+        let prev_index = unsigned_input.get_prev_index();
+        let sequence = unsigned_input.get_sequence();
+        let witness = unsigned_input.get_witness();
+        // return a new signed input
+        TxInput::new(prev_tx_id, prev_index, script_sig, sequence, witness)
     }
 
 }
