@@ -176,6 +176,36 @@ fn op_checksig(stack: &mut Vec<Vec<u8>>, z: Vec<u8>) -> bool {
     result
 }
 
+// 174 - OP_CHECKMULTISIG
+fn op_checkmultsig(stack: &mut Vec<Vec<u8>>, z: Vec<u8>) -> bool {
+    if stack.is_empty() {
+        return false;
+    }
+    let n: usize = decode_num(&stack.pop().unwrap()).try_into().unwrap();
+    if stack.len() < n + 1 {
+        return false;
+    }
+    let mut sec_pubkeys = vec![];
+    for _ in 0..n {
+        sec_pubkeys.push(stack.pop().unwrap());
+    }
+    let m: usize = decode_num(&stack.pop().unwrap()).try_into().unwrap();
+    if stack.len() < m + 1 {
+        return false;
+    }
+    let mut der_signatures: Vec<Vec<u8>> = vec![];
+    for _ in 0..m {
+        // remove the final byte of the stack item first
+        let signature = stack.pop().unwrap();
+        let signature_bytes = &signature[..signature.len()-1];
+        der_signatures.push(signature_bytes.to_vec());
+    }
+    stack.pop();
+    // TODO code multisig verification
+
+    true
+}
+
 // type StackOpFunc = fn(&mut Vec<Vec<u8>>, &mut Vec<Vec<u8>>) -> bool;
 
 #[derive(Clone)]

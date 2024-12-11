@@ -150,3 +150,5 @@ fn test_construct_testnet_tx() {
     // testmempoolaccept
     // assertions
 }
+
+// add tests for multiple inputs and outputs
