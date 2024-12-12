@@ -1,6 +1,6 @@
 use primitive_types::U256;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Signature {
     r: U256,
     s: U256

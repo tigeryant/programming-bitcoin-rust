@@ -195,15 +195,44 @@ fn op_checkmultsig(stack: &mut Vec<Vec<u8>>, z: Vec<u8>) -> bool {
     }
     let mut der_signatures: Vec<Vec<u8>> = vec![];
     for _ in 0..m {
-        // remove the final byte of the stack item first
+        // remove the final byte (sig hash) of the stack item first
         let signature = stack.pop().unwrap();
         let signature_bytes = &signature[..signature.len()-1];
         der_signatures.push(signature_bytes.to_vec());
     }
     stack.pop();
-    // TODO code multisig verification
 
-    true
+    // Multisignature verification
+    let pubkey_points = sec_pubkeys
+        .into_iter()
+        .map(Point::parse_to_s256_point);
+    
+    let signatures: Vec<Signature> = der_signatures
+        .into_iter()
+        .map(Signature::parse)
+        .collect();
+
+    // Verify each signature
+    let mut sig_index: usize = 0;
+    for pubkey in pubkey_points {
+        if sig_index >= signatures.len() {
+            break;
+        }
+        let signature = signatures[sig_index].clone();
+        let is_valid = pubkey.verify(z.clone(), signature);
+        if is_valid {
+            sig_index += 1;
+        }
+    }
+
+    // Check that all the signatures have been verified, push 1 or 0 to stack
+    if sig_index == signatures.len() {
+        stack.push(encode_num(1));
+        true
+    } else {
+        stack.push(encode_num(1));
+        false
+    }
 }
 
 // type StackOpFunc = fn(&mut Vec<Vec<u8>>, &mut Vec<Vec<u8>>) -> bool;
@@ -230,6 +259,7 @@ pub fn create_op_code_functions() -> HashMap<u8, OpFunction> {
     op_code_functions.insert(149, OpFunction::StackOp(op_mul)); // should be disabled
     op_code_functions.insert(169, OpFunction::StackOp(op_hash160));
     op_code_functions.insert(170, OpFunction::StackOp(op_hash256));
+    op_code_functions.insert(174, OpFunction::StackSigOp(op_checkmultsig));
     op_code_functions.insert(172, OpFunction::StackSigOp(op_checksig));
     op_code_functions
 }
