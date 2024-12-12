@@ -1,8 +1,9 @@
 use std::fmt;
 use std::io::{ Cursor, Read, Error };
 
-use crate::utils::varint::read_varint;
+use crate::utils::varint::{encode_varint, read_varint};
 use crate::script::op::{self, create_op_code_names, encode_num, OpFunction};
+
 
 #[derive(Clone, Debug)]
 pub struct Script {
@@ -140,6 +141,35 @@ impl Script {
             } else {
                 // Handle data element by pushing to stack
                 stack.push(cmd.clone());
+                // Check for P2SH
+                if commands.len() == 3 &&
+                commands[1][0] == 0xa9 && // OP_HASH160
+                commands[1].len() > 1 && // redeem script is a data element
+                commands[1].len() == 20 && // redeem script is 20 bytes long
+                commands[2][0] == 0x87 { // OP_EQUAL
+                    commands.pop();
+                    let h160 = commands.pop().unwrap();
+                    commands.pop();
+                    let op_hash160_result = op::op_hash160(&mut stack);
+                    if !op_hash160_result {
+                        return false;
+                    }
+                    stack.push(h160);
+                    let op_equal_result = op::op_equal(&mut stack);
+                    if !op_equal_result {
+                        return false;
+                    }
+                    let op_verify_result = op::op_verify(&mut stack);
+                    if !op_verify_result {
+                        dbg!("bad p2sh h160");
+                        return false;
+                    }
+                    let mut redeem_script = encode_varint(cmd.len() as u64);
+                    redeem_script.extend(cmd);
+                    let mut stream = Cursor::new(redeem_script);
+                    commands.extend(Script::parse(&mut stream).unwrap().get_commands());
+                }
+
                 // Check for native segwit (P2WPKH)
                 if stack.len() == 2 && stack[0] == vec![] && stack[1].len() == 20 {
                     let h160 = stack.pop().unwrap();

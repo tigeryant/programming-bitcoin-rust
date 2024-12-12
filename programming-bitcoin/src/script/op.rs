@@ -68,6 +68,20 @@ fn op_6(stack: &mut Vec<Vec<u8>>) -> bool {
     true
 }
 
+// 105 - OP_VERIFY
+pub fn op_verify(stack: &mut Vec<Vec<u8>>) -> bool {
+    if stack.is_empty() {
+        return false;
+    }
+
+    let element = stack.pop().unwrap();
+    if decode_num(&element) == 0 {
+        return false;
+    }
+
+    true
+}
+
 // 118 - OP_DUP
 pub fn op_dup(stack: &mut Vec<Vec<u8>>) -> bool {
     if stack.is_empty() {
@@ -78,7 +92,7 @@ pub fn op_dup(stack: &mut Vec<Vec<u8>>) -> bool {
 }
 
 // 135 - OP_EQUAL
-fn op_equal(stack: &mut Vec<Vec<u8>>) -> bool {
+pub fn op_equal(stack: &mut Vec<Vec<u8>>) -> bool {
     if stack.len() < 2 {
         return false;
     }
@@ -252,6 +266,7 @@ pub fn create_op_code_functions() -> HashMap<u8, OpFunction> {
     let mut op_code_functions = HashMap::new();
     op_code_functions.insert(82, OpFunction::StackOp(op_2));
     op_code_functions.insert(86, OpFunction::StackOp(op_6));
+    op_code_functions.insert(105, OpFunction::StackOp(op_verify));
     op_code_functions.insert(118, OpFunction::StackOp(op_dup));
     op_code_functions.insert(135, OpFunction::StackOp(op_equal)); // same signature as StackHashOp
     op_code_functions.insert(136, OpFunction::StackOp(op_equalverify));
@@ -271,6 +286,7 @@ pub fn create_op_code_names() -> HashMap<u8, &'static str> {
     // 99, 100
     op_code_names.insert(99, "OP_IF");
     op_code_names.insert(100, "OP_NOTIF");
+    op_code_names.insert(105, "OP_VERIFY");
     // 107, 108
     op_code_names.insert(107, "OP_TOALTSTACK");
     op_code_names.insert(108, "OP_FROMALTSTACK");
