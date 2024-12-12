@@ -1,6 +1,6 @@
 use std::io::Cursor;
 use primitive_types::U256;
-use programming_bitcoin::{ecc::{point::Point, private_key::PrivateKey, signature::Signature}, script::script::Script, transactions::{input_signing_data::InputSigningData, tx::Tx, tx_input::TxInput, tx_output::TxOutput}, utils::{base58::decode_base58, sig_hash_type::SigHashType}};
+use programming_bitcoin::{ecc::{point::Point, private_key::PrivateKey, signature::Signature}, script::script::Script, transactions::{input_signing_data::InputSigningData, tx::Tx, tx_input::TxInput, tx_output::TxOutput}, utils::{base58::{decode_base58, encode_base58_checksum}, sig_hash_type::SigHashType}};
 
 // add tests here for parsing the individual components of the tx - version, inputs, outputs, locktime (and testnet?)
 #[test]
@@ -152,3 +152,13 @@ fn test_construct_testnet_tx() {
 }
 
 // add tests for multiple inputs and outputs
+
+#[test]
+fn test_h160_to_p2sh_address() {
+    let network_prefix: u8 = 0x05;
+    let mut h160 = hex::decode("74d691da1574e6b3c192ecfb52cc8984ee7b6c56").unwrap();
+    h160.insert(0, network_prefix);
+    let address = encode_base58_checksum(&h160);
+    let expected = String::from("3CLoMMyuoDQTPRD3XYZtCvgvkadrAdvdXh");
+    assert_eq!(expected, address);
+}
