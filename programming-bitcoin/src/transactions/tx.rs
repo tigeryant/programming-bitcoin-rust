@@ -286,8 +286,16 @@ impl Tx {
     }
 
     /// Returns the signature hash
-    pub fn sig_hash(&self, sig_hash_type: &SigHashType, tx_index: usize) -> Vec<u8> {
+    pub fn sig_hash(&self, sig_hash_type: &SigHashType, tx_index: usize, p2sh: bool) -> Vec<u8> {
         let inputs = &self.tx_ins;
+        let original_input = inputs[tx_index].clone();
+        let original_script_sig = original_input.get_script_sig();
+        original_input.empty_script_sig();
+        let mut redeem_script: Option<Script> = None;
+        // extract the redeem script if P2SH
+        if p2sh {
+            redeem_script = Some(original_script_sig.get_redeem_script());
+        }
         let mut modified_inputs: Vec<TxInput> = inputs
             .iter()
             .map(|input| {
@@ -296,9 +304,9 @@ impl Tx {
             .collect();
         // can we remove this clone()?
         let mut current_input = modified_inputs[tx_index].clone();
-        // Can we deduce the sig_hash_type based on the last byte of the script_sig?
-        current_input.get_script_sig();
-        current_input = current_input.replace_script_sig(self.testnet);
+        // TODO Can we deduce the sig_hash_type based on the last byte of the script_sig?
+        // let script_sig = current_input.get_script_sig();
+        current_input = current_input.replace_script_sig(self.testnet, redeem_script);
         modified_inputs[tx_index] = current_input;
         let modified_tx = Self {
             version: self.version,
@@ -321,16 +329,21 @@ impl Tx {
     pub fn verify_input(&self, sig_hash_type: SigHashType, index: usize) -> bool {
         let input: &TxInput = &self.tx_ins[index];
         let script_pubkey = input.script_pubkey(self.testnet);
-        // z will be calculated differently for a segwit tx
+        // z calculated differently for a segwit tx
         // later we need to deal with p2sh-p2wphk (the wrapped version)
-        // for now, deal with p2wpkh
         let z: Vec<u8>;
         let witness;
+        // could refactor to a match statement
         if script_pubkey.is_p2wpkh() {
             z = self.sig_hash_bip143(index, None, None);
             witness = input.clone().get_witness();
+        } else if script_pubkey.is_p2sh() {
+            z = self.sig_hash(&sig_hash_type, index,  true);
+            witness = None;
         } else { // legacy tx
-            z = self.sig_hash(&sig_hash_type, index);
+            z = self.sig_hash(&sig_hash_type, index, false);
+            let z_string = hex::encode(&z);
+            dbg!(z_string);
             witness = None;
         }
 
@@ -432,7 +445,7 @@ impl Tx {
 
     pub fn sign_input(&self, index: usize, private_key_str: &str, sig_hash_type: SigHashType, unsigned_input: TxInput) -> TxInput {
         // signing the tx - getting z
-        let z = self.sig_hash(&sig_hash_type, index);
+        let z = self.sig_hash(&sig_hash_type, index, false); // assumes not p2sh
         // Private key associated with the public key of the output we are spending from
         let private_key = PrivateKey::new(U256::from_str_radix(private_key_str, 16).unwrap());
         let der = private_key.sign(z).der();

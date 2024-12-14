@@ -52,11 +52,11 @@ pub fn decode_num(element: &[u8]) -> i32 {
     }
 }
 
-// temporarily removing until it's used
-// fn op_0(stack: &mut Vec<Vec<u8>>) -> bool {
-//     stack.push(encode_num(0));
-//     true
-// }
+// OP_0
+fn op_0(stack: &mut Vec<Vec<u8>>) -> bool {
+    stack.push(encode_num(0));
+    true
+}
 
 fn op_2(stack: &mut Vec<Vec<u8>>) -> bool {
     stack.push(encode_num(2));
@@ -191,7 +191,7 @@ fn op_checksig(stack: &mut Vec<Vec<u8>>, z: Vec<u8>) -> bool {
 }
 
 // 174 - OP_CHECKMULTISIG
-fn op_checkmultsig(stack: &mut Vec<Vec<u8>>, z: Vec<u8>) -> bool {
+fn op_checkmultisig(stack: &mut Vec<Vec<u8>>, z: Vec<u8>) -> bool {
     if stack.is_empty() {
         return false;
     }
@@ -264,6 +264,7 @@ pub enum OpFunction {
 // keys are in decimal
 pub fn create_op_code_functions() -> HashMap<u8, OpFunction> {
     let mut op_code_functions = HashMap::new();
+    op_code_functions.insert(0, OpFunction::StackOp(op_0));
     op_code_functions.insert(82, OpFunction::StackOp(op_2));
     op_code_functions.insert(86, OpFunction::StackOp(op_6));
     op_code_functions.insert(105, OpFunction::StackOp(op_verify));
@@ -274,13 +275,14 @@ pub fn create_op_code_functions() -> HashMap<u8, OpFunction> {
     op_code_functions.insert(149, OpFunction::StackOp(op_mul)); // should be disabled
     op_code_functions.insert(169, OpFunction::StackOp(op_hash160));
     op_code_functions.insert(170, OpFunction::StackOp(op_hash256));
-    op_code_functions.insert(174, OpFunction::StackSigOp(op_checkmultsig));
+    op_code_functions.insert(174, OpFunction::StackSigOp(op_checkmultisig));
     op_code_functions.insert(172, OpFunction::StackSigOp(op_checksig));
     op_code_functions
 }
 
 pub fn create_op_code_names() -> HashMap<u8, &'static str> {
     let mut op_code_names = HashMap::new();
+    op_code_names.insert(0, "OP_0");
     op_code_names.insert(82, "OP_2");
     op_code_names.insert(86, "OP_6");
     // 99, 100

@@ -1,5 +1,5 @@
 use std::io::Cursor;
-use programming_bitcoin::{address::address, ecc::{point::Point, private_key::PrivateKey, signature::Signature}, script::script::Script, transactions::{input_signing_data::InputSigningData, tx::Tx, tx_input::TxInput, tx_output::TxOutput}, utils::{base58::{decode_base58, encode_base58_checksum}, sig_hash_type::SigHashType}};
+use programming_bitcoin::{address::address, ecc::{point::Point, private_key::PrivateKey, signature::Signature}, script::script::Script, transactions::{input_signing_data::InputSigningData, tx::Tx, tx_input::TxInput, tx_output::TxOutput}, utils::{base58::{decode_base58, encode_base58_checksum}, hash256::hash256, sig_hash_type::SigHashType}};
 
 // add tests here for parsing the individual components of the tx - version, inputs, outputs, locktime (and testnet?)
 #[test]
@@ -19,7 +19,7 @@ fn test_sig_hash() {
     let tx = Tx::parse(&mut stream, false);
 
     // tests with sighash all
-    let z = tx.sig_hash(&SigHashType::SigHashAll, 0);
+    let z = tx.sig_hash(&SigHashType::SigHashAll, 0, false); // assumes not p2sh
     let z_hex = hex::encode(z);
     print!("Z: 0x{}", z_hex);
     let output = z_hex;
@@ -52,7 +52,7 @@ fn test_verify_input() {
 
 #[test]
 fn test_create_p2pkh_tx() {
-    // create a TxInput, passing the prev_tx_id, the prev_index, an empty script_sig and a sequence number
+    // create a TxInput
     // this tx id is in big endian
     let prev_tx_id: [u8; 32] = hex::decode("0d6fe5213c0b3291f208cba8bfb59b7476dffacc4e5cb66f6eb20a080843a299").unwrap().try_into().unwrap();
     let prev_index: [u8; 4] = 13u32.to_le_bytes();
@@ -75,60 +75,22 @@ fn test_create_p2pkh_tx() {
     // transaction input is on testnet
     let tx = Tx::new(1, vec![tx_in], vec![change_output.clone(), target_output.clone()], 0, true, false);
     let output_serialized_tx1 = hex::encode(tx.serialize());
-    // println!("{serialized_tx1}");
-    // println!("{tx}");
-
     let expected_serialized_tx1 = String::from("010000000199a24308080ab26e6fb65c4eccfadf76749bb5bfa8cb08f291320b3c21e56f0d0d00000000ffffffff02408af701000000001976a914d52ad7ca9b3d096a38e752c2018e6fbc40cdf26f88ac80969800000000001976a914507b27411ccf7f16f10297de6cef3f291623eddf88ac00000000");
     assert_eq!(output_serialized_tx1, expected_serialized_tx1);
-
-    /*
-    // signing the transaction
-    let z = tx.sig_hash(SigHashType::SigHashAll, 0);
-    let z_u256 = U256::from_big_endian(&z);
-    let private_key = PrivateKey::new(U256::from(8675309));
-    let der = private_key.sign(z_u256).der();
-
-    // the signature is the DER signature concatenated with the sighash
-    // this will not actually be of type Signature
-    // let sig = der.concat(SigHashType::SigHashAll)
-    let sig = [der, vec![SigHashType::SigHashAll as u8]].concat(); // maybe this should be u32?
-    let sec = private_key.point().sec(true); // assuming compressed is true
-    let script_sig = Script::new(vec![sig, sec]);
-
-    let modified_tx_in = TxInput::new(prev_tx_id, prev_index, script_sig, sequence, None);
-    let new_tx = Tx::new(1, vec![modified_tx_in], vec![change_output, target_output], 0, true, false);
-    let serialized_tx = new_tx.serialize();
-    let output_tx2_hex = hex::encode(&serialized_tx);
-    // println!("Serialized transaction (hex): {}", tx_hex);
-
-    // let expected_tx2_hex = hex::encode("0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006a47304402207db2402a3311a3b845b038885e3dd889c08126a8570f26a844e3e4049c482a11022010178cdca4129eacbeab7c44648bf5ac1f9cac217cd609d216ec2ebc8d242c0a012103935581e52c354cd2f484fe8ed83af7a3097005b2f9c60bff71d35bd795f54b67feffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600");
-    let expected_tx2_hex = String::from("0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006a47304402207db2402a3311a3b845b038885e3dd889c08126a8570f26a844e3e4049c482a11022010178cdca4129eacbeab7c44648bf5ac1f9cac217cd609d216ec2ebc8d242c0a012103935581e52c354cd2f484fe8ed83af7a3097005b2f9c60bff71d35bd795f54b67feffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600");
-    // assert_eq!(expected_tx2_hex, output_tx2_hex);
-    // print the serialized tx as hex
-    // add assertions
-     */
-
-}
-
-#[test]
-fn test_sign_tx() {
-
 }
 
 #[test]
 fn test_construct_testnet_tx() {
     // constructing the input
-    // note - this is a testnet tx - from the faucet
+    // this is a testnet tx - from the faucet
     let prev_tx_id: [u8; 32] = hex::decode("1c7c86d5a25414c4dfb614f8138a6aec7aca30176fca8a260c7886cb97b480b5").unwrap().try_into().unwrap();
     let prev_index: [u8; 4] = 1u32.to_le_bytes(); // prev index 1
     let empty_script_sig = Script::new_empty_script();
     let sequence: [u8; 4] = hex::decode("ffffffff").unwrap().try_into().unwrap();
 
-    // UTXO value is 0.00016214
     let unsigned_input = TxInput::new(prev_tx_id, prev_index, empty_script_sig, sequence, None);
     
     // constructing the unsigned transaction
-    // works with 0.0007, 8, 9
     let target_amount: u64 =  (0.00009_f64 * 100_000_000.0) as u64;
     let target_h160 = decode_base58("mwmPBaschd3ukQzVkwfL1sHcBBJSUcmb8L").unwrap();
     let target_script = Script::p2pkh_script(target_h160);
@@ -136,6 +98,7 @@ fn test_construct_testnet_tx() {
     
     // transaction is on testnet
     let unsigned_tx = Tx::new(1, vec![unsigned_input.clone()], vec![target_output.clone()], 0, true, false);
+    // this is for signing mulitple inputs
     // let signing_data = vec![InputSigningData::new(0, String::from("ee0b031ef58f9014c5b4c641dbc29c0ca086926eebd00be7b8df2c4e13a15e23"), SigHashType::SigHashAll, unsigned_input)];
     let signed_input = unsigned_tx.sign_input(0, "ee0b031ef58f9014c5b4c641dbc29c0ca086926eebd00be7b8df2c4e13a15e23", SigHashType::SigHashAll, unsigned_input);
 
@@ -146,8 +109,31 @@ fn test_construct_testnet_tx() {
     assert!(signed_tx.verify_input(SigHashType::SigHashAll, 0));
     // verify the whole transaction
     assert!(signed_tx.verify());
-    // testmempoolaccept
-    // assertions
+    // can add testmempoolaccept
 }
 
 // add tests for multiple inputs and outputs
+
+#[test]
+fn verify_p2sh_tx() {
+    let raw_tx = hex::decode("0100000001868278ed6ddfb6c1ed3ad5f8181eb0c7a385aa0836f01d5e4789e6bd304d87221a000000db00483045022100dc92655fe37036f47756db8102e0d7d5e28b3beb83a8fef4f5dc0559bddfb94e02205a36d4e4e6c7fcd16658c50783e00c341609977aed3ad00937bf4ee942a8993701483045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e75402201475221022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb702103b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb7152aeffffffff04d3b11400000000001976a914904a49878c0adfc3aa05de7afad2cc15f483a56a88ac7f400900000000001976a914418327e3f3dda4cf5b9089325a4b95abdfa0334088ac722c0c00000000001976a914ba35042cfe9fc66fd35ac2224eebdafd1028ad2788acdc4ace020000000017a91474d691da1574e6b3c192ecfb52cc8984ee7b6c568700000000").unwrap();
+    let mut stream = Cursor::new(raw_tx);
+    let tx = Tx::parse(&mut stream, false);
+    let result = tx.verify_input(SigHashType::SigHashAll, 0);
+    assert!(result);
+}
+
+#[test]
+fn test_verify_p2sh_sig() {
+    // input data from p160
+    let raw_modified_tx = hex::decode("0100000001868278ed6ddfb6c1ed3ad5f8181eb0c7a385aa0836f01d5e4789e6bd304d87221a000000475221022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb702103b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb7152aeffffffff04d3b11400000000001976a914904a49878c0adfc3aa05de7afad2cc15f483a56a88ac7f400900000000001976a914418327e3f3dda4cf5b9089325a4b95abdfa0334088ac722c0c00000000001976a914ba35042cfe9fc66fd35ac2224eebdafd1028ad2788acdc4ace020000000017a91474d691da1574e6b3c192ecfb52cc8984ee7b6c56870000000001000000").unwrap();
+    let z = hash256(&raw_modified_tx);
+    let raw_sec = hex::decode("022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb70").unwrap();
+    let pubkey = Point::parse_to_s256_point(raw_sec); 
+    let raw_der = hex::decode("3045022100dc92655fe37036f47756db8102e0d7d5e28b3beb83a8fef4f5dc0559bddfb94e02205a36d4e4e6c7fcd16658c50783e00c341609977aed3ad00937bf4ee942a89937").unwrap();
+    let sig = Signature::parse(raw_der);
+    dbg!(hex::encode(&z));
+    // z: e71bfa115715d6fd33796948126f40a8cdd39f187e4afb03896795189fe1423c
+    let is_valid = pubkey.verify(z, sig);
+    assert!(is_valid);
+}

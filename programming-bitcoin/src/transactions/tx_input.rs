@@ -97,19 +97,23 @@ impl TxInput {
         }
     } 
 
-    /// Get the ScriptPubKey by looking up the tx hash
+    /// Get the script_pubkey by looking up the tx hash
     pub fn script_pubkey(&self, testnet: bool) -> Script {
         let tx = &self.fetch_tx(testnet, true);
         let index = u32::from_le_bytes(self.prev_index) as usize;
         tx.get_tx_outs()[index].get_script_pubkey()
     }
 
-    /// Returns a modified input (script_sig replaced with script_pubkey) for creating a signature hash
-    pub fn replace_script_sig(&self, testnet: bool) -> Self {
+    /// Returns a modified input (script_sig replaced with script_pubkey/redeem_script) for creating a signature hash
+    pub fn replace_script_sig(&self, testnet: bool, redeem_script: Option<Script>) -> Self {
+        let replacement: Script = match redeem_script {
+            None => self.script_pubkey(testnet),
+            Some(redeem_script) => redeem_script
+        };
         Self {
             prev_tx_id: self.prev_tx_id,
             prev_index: self.prev_index,
-            script_sig: self.script_pubkey(testnet),
+            script_sig: replacement,
             sequence: self.sequence,
             witness: self.witness.clone()
         }

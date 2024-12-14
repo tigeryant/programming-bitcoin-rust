@@ -115,7 +115,7 @@ impl Script {
         Self { commands }
     }
 
-    pub fn evaluate(self, z: Vec<u8>, witness: Option<Vec<Vec<u8>>>) -> bool { // z should be a U256
+    pub fn evaluate(self, z: Vec<u8>, witness: Option<Vec<Vec<u8>>>) -> bool {
         let mut commands = self.commands.clone();
         let mut stack = vec![];
         // let altstack = vec![];
@@ -141,9 +141,10 @@ impl Script {
             } else {
                 // Handle data element by pushing to stack
                 stack.push(cmd.clone());
+
                 // Check for P2SH
                 if commands.len() == 3 &&
-                commands[1][0] == 0xa9 && // OP_HASH160
+                commands[0][0] == 0xa9 && // OP_HASH160
                 commands[1].len() > 1 && // redeem script is a data element
                 commands[1].len() == 20 && // redeem script is 20 bytes long
                 commands[2][0] == 0x87 { // OP_EQUAL
@@ -198,15 +199,6 @@ impl Script {
         Script::new(commands)
     }
 
-    pub fn is_p2wpkh(&self) -> bool {
-        let length_2 = self.commands.len() == 2;
-        let first_byte_zero = self.commands[0] == vec![0x00];
-        let second_element_data = self.commands[1].len() > 1;
-        let data_20_long = self.commands[1].len() == 20;
-
-        length_2 && first_byte_zero && second_element_data && data_20_long
-    }
-
     /// Takes a hash160 and returns the p2wpkh script_pubkey
     pub fn p2wpkh_script(h160: Vec<u8>) -> Self {
         Self::new(vec![vec![0x00], h160])
@@ -215,11 +207,44 @@ impl Script {
     pub fn get_commands(self) -> Vec<Vec<u8>> {
         self.commands
     }
+
+    pub fn is_p2wpkh(&self) -> bool { // This is for script_pubkey
+        let length_2 = self.commands.len() == 2;
+        let first_byte_zero = self.commands[0] == vec![0x00];
+        let second_element_data = self.commands[1].len() > 1;
+        let data_20_long = self.commands[1].len() == 20;
+
+        length_2 && first_byte_zero && second_element_data && data_20_long
+    }
+
+    pub fn is_p2sh(&self) -> bool { // This is for script_pubkey
+        self.commands[0][0] == 0xa9 && // OP_HASH160
+        self.commands[1].len() > 1 && // redeem script is a data element
+        self.commands[1].len() == 20 && // redeem script is 20 bytes long
+        self.commands[2][0] == 0x87 // OP_EQUAL 
+    }
+
+    pub fn is_p2sh_script_sig(&self) -> bool {
+        // what do we know about the lengths of these elements?
+        self.commands[0][0] == 0x00 && // OP_0
+        self.commands[1].len() > 1 && // signature script is a data element
+        self.commands[2].len() > 1 && // pubkey is a data element
+        self.commands[3].len() > 1 // redeem script is a data element
+    }
+
+    pub fn get_redeem_script(&self) -> Self {
+        let mut redeem_script = vec![];
+        redeem_script.extend_from_slice(&encode_varint(self.commands[3].len() as u64));
+        redeem_script.extend_from_slice(&self.commands[3]);
+        let mut stream = Cursor::new(redeem_script);
+        Self::parse(&mut stream).unwrap()
+    }
 }
 
 impl fmt::Display for Script {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let op_code_names = create_op_code_names();
+        // Add check for script type (P2PKH, P2SH, etc) for more descriptive output
 
         // First write the script length
         writeln!(f, "Length: {} byte(s)", self.raw_serialize().len())?;
