@@ -28,6 +28,7 @@ impl TxInput {
     }
 
     // may contain a witness - None for now
+    // Add error handling - should return Result<Self, Error>
     pub fn parse(cursor: &mut Cursor<Vec<u8>>) -> Self {
         // read 32 bytes for prev_tx (little endian)
         let mut prev_tx_id= [0u8; 32];
