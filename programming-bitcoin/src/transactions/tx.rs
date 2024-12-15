@@ -484,6 +484,12 @@ impl Tx {
         self.tx_ins[0].prev_index == f_index &&
         self.tx_ins[0].prev_tx_id == zero_prev_tx_id
     }
+
+    pub fn coinbase_height(&self) -> u32 {
+        let script_sig = &self.tx_ins[0].script_sig;
+        let block_height: &Vec<u8> = &script_sig.commands[0];
+        u32::from_le_bytes(block_height[..4].try_into().unwrap())
+    }
 }
 
 impl fmt::Display for Tx {

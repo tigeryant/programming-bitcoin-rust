@@ -7,7 +7,7 @@ use crate::script::op::{self, create_op_code_names, encode_num, OpFunction};
 
 #[derive(Clone, Debug)]
 pub struct Script {
-    commands: Vec<Vec<u8>>
+    pub commands: Vec<Vec<u8>>
 }
 
 impl Script {
