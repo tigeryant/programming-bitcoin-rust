@@ -6,11 +6,11 @@ use super::tx::Tx;
 
 #[derive(Clone, Debug)]
 pub struct TxInput {
-    prev_tx_id: [u8; 32], // should this be prev? // this should be stored in little endian
-    prev_index: [u8; 4], // should this be prev?
-    script_sig: Script,
-    sequence: [u8; 4],
-    witness: Option<Vec<Vec<u8>>>
+    pub prev_tx_id: [u8; 32], // should this be prev? // this should be stored in little endian
+    pub prev_index: [u8; 4], // should this be prev?
+    pub script_sig: Script,
+    pub sequence: [u8; 4],
+    pub witness: Option<Vec<Vec<u8>>>
 }
 
 impl TxInput {

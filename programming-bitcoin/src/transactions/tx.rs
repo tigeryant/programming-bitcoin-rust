@@ -14,12 +14,12 @@ use super::input_signing_data::InputSigningData;
 
 #[derive(Clone, Debug)]
 pub struct Tx {
-    version: u32,
-    tx_ins: Vec<TxInput>,
-    tx_outs: Vec<TxOutput>,
-    locktime: u32,
-    testnet: bool,
-    segwit: bool
+    pub version: u32,
+    pub tx_ins: Vec<TxInput>,
+    pub tx_outs: Vec<TxOutput>,
+    pub locktime: u32,
+    pub testnet: bool,
+    pub segwit: bool
 }
 
 impl Tx {
@@ -471,6 +471,18 @@ impl Tx {
                 self.sign_input(data.index, &data.private_key_str, data.sig_hash_type, data.input)
             })
             .collect()
+    }
+
+    pub fn is_coinbase(&self) -> bool {
+        let zero_string = "0000000000000000000000000000000000000000000000000000000000000000";
+        let zero_prev_tx_id: [u8; 32] = hex::decode(zero_string).unwrap().try_into().unwrap();
+
+        let f_string = "ffffffff";
+        let f_index: [u8; 4] = hex::decode(f_string).unwrap().try_into().unwrap();
+
+        self.tx_ins.len() == 1 &&
+        self.tx_ins[0].prev_index == f_index &&
+        self.tx_ins[0].prev_tx_id == zero_prev_tx_id
     }
 }
 
