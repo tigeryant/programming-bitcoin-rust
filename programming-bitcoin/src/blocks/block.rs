@@ -1,6 +1,8 @@
 use std::io::{Cursor, Read, Error};
 use std::fmt;
 
+use crate::utils::hash256::hash256;
+
 pub struct Block {
     pub version: [u8; 4], // little endian
     pub prev_block: [u8; 32], // little endian
@@ -70,6 +72,13 @@ impl Block {
         result.extend(self.nonce);
 
         result
+    }
+
+    pub fn hash(&self) -> Vec<u8> {
+        let serialized = self.serialize();
+        let hash = hash256(&serialized);
+        // Reverse to get little endian
+        hash.into_iter().rev().collect()
     }
 }
 
