@@ -27,16 +27,22 @@ impl Block {
     pub fn parse(reader: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
         let mut version = [0u8; 4];
         reader.read_exact(&mut version)?;
+
         let mut prev_block = [0u8; 32];
         reader.read_exact(&mut prev_block)?;
+
         let mut merkle_root = [0u8; 32];
         reader.read_exact(&mut merkle_root)?;
+
         let mut timestamp = [0u8; 4];
         reader.read_exact(&mut timestamp)?;
+
         let mut bits = [0u8; 4];
         reader.read_exact(&mut bits)?;
+
         let mut nonce = [0u8; 4];
         reader.read_exact(&mut nonce)?;
+
         Ok(Self {
             version,
             prev_block,
@@ -45,6 +51,25 @@ impl Block {
             bits,
             nonce
         })
+    }
+
+    /// Returns the byte serialization of the block
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+
+        result.extend(self.version);
+
+        result.extend(self.prev_block);
+
+        result.extend(self.merkle_root);
+
+        result.extend(self.timestamp);
+
+        result.extend(self.bits);
+
+        result.extend(self.nonce);
+
+        result
     }
 }
 
