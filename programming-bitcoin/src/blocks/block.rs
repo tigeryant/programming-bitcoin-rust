@@ -83,10 +83,21 @@ impl Block {
 
     // Returns true to indicate BIP9 support
     pub fn bip9(&self) -> bool {
-        let top_byte = self.version[3];
-        (top_byte & 0b11100000) == 0b00100000 // mask the top three bits, AND with 001
+        let version: u32 = u32::from_le_bytes(self.version);
+        version >> 29 == 0b001
     }
 
+    // Returns true to indicate BIP91 support
+    pub fn bip91(&self) -> bool {
+        let version: u32 = u32::from_le_bytes(self.version);
+        version >> 4 & 1 == 1
+    }
+
+    // Returns true to indicate BIP141 support
+    pub fn bip141(&self) -> bool {
+        let version: u32 = u32::from_le_bytes(self.version);
+        version >> 1 & 1 == 1
+    }
 }
 
 impl fmt::Display for Block {
