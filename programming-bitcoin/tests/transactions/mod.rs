@@ -1,5 +1,5 @@
 use std::io::Cursor;
-use programming_bitcoin::{address::address, ecc::{point::Point, private_key::PrivateKey, signature::Signature}, script::script::Script, transactions::{input_signing_data::InputSigningData, tx::Tx, tx_input::TxInput, tx_output::TxOutput}, utils::{base58::{decode_base58, encode_base58_checksum}, hash256::hash256, sig_hash_type::SigHashType}};
+use programming_bitcoin::{ecc::{point::Point, signature::Signature}, script::script::Script, transactions::{tx::Tx, tx_input::TxInput, tx_output::TxOutput}, utils::{base58::decode_base58, hash256::hash256, sig_hash_type::SigHashType}};
 
 // add tests here for parsing the individual components of the tx - version, inputs, outputs, locktime (and testnet?)
 #[test]

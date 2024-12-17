@@ -3,11 +3,11 @@ use std::fmt;
 
 use crate::utils::hash256::hash256;
 
-pub struct Block {
-    pub version: [u8; 4], // little endian
-    pub prev_block: [u8; 32], // little endian
-    pub merkle_root: [u8; 32], // little endian
-    pub timestamp: [u8; 4], // little endian
+pub struct Block { // all these fields are stored as little endian
+    pub version: [u8; 4],
+    pub prev_block: [u8; 32],
+    pub merkle_root: [u8; 32],
+    pub timestamp: [u8; 4],
     pub bits: [u8; 4],
     pub nonce: [u8; 4]
 }
@@ -76,10 +76,17 @@ impl Block {
 
     pub fn hash(&self) -> Vec<u8> {
         let serialized = self.serialize();
-        let hash = hash256(&serialized);
-        // Reverse to get little endian
+        let hash = hash256(&serialized); // little endian
+        // Reverse the result to return big endian
         hash.into_iter().rev().collect()
     }
+
+    // Returns true to indicate BIP9 support
+    pub fn bip9(&self) -> bool {
+        let top_byte = self.version[3];
+        (top_byte & 0b11100000) == 0b00100000 // mask the top three bits, AND with 001
+    }
+
 }
 
 impl fmt::Display for Block {

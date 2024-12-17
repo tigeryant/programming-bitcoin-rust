@@ -365,7 +365,7 @@ impl Tx {
     }
 
     /// Returns a byte vector of the signature hash to be signed for the input at this index
-    fn sig_hash_bip143(&self, input_index: usize, redeem_script: Option<Script>, witness_script: Option<Script>) -> Vec<u8> {
+    fn sig_hash_bip143(&self, input_index: usize, _redeem_script: Option<Script>, _witness_script: Option<Script>) -> Vec<u8> {
         // per BIP143 spec
         let tx_in = self.tx_ins[input_index].clone();
 
