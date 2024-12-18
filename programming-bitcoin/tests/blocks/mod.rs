@@ -1,6 +1,7 @@
 use std::io::Cursor;
 
-use programming_bitcoin::blocks::block::Block;
+use primitive_types::U256;
+use programming_bitcoin::blocks::{block::Block, utils::bits_to_target};
 
 #[test]
 fn parse_block() {
@@ -88,4 +89,12 @@ fn bip141() {
     let block = Block::parse(&mut stream).unwrap();
 
     assert!(block.bip141());
+}
+
+#[test]
+fn test_bits_to_target() {
+    let bits: [u8; 4] = hex::decode("e93c0118").unwrap().try_into().unwrap();
+    let output = bits_to_target(bits);
+    let expected = U256::from_str_radix("0000000000000000013ce9000000000000000000000000000000000000000000", 16).unwrap();
+    assert_eq!(output, expected);
 }
