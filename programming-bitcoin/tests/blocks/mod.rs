@@ -98,3 +98,14 @@ fn test_bits_to_target() {
     let expected = U256::from_str_radix("0000000000000000013ce9000000000000000000000000000000000000000000", 16).unwrap();
     assert_eq!(output, expected);
 }
+
+#[test]
+fn test_difficulty() {
+    let raw_block = hex::decode("020000208ec39428b17323fa0ddec8e887b4a7c53b8c0a0a220cfd0000000000000000005b0750fce0a889502d40508d39576821155e9c9e3f5c3157f961db38fd8b25be1e77a759e93c0118a4ffd71d").unwrap();
+    let mut stream: Cursor<Vec<u8>> =  Cursor::new(raw_block);
+    let block = Block::parse(&mut stream).unwrap();
+    let output = block.difficulty();
+    let expected = 888171856257.3206;
+    let epsilon = 1.0;
+    assert!((output - expected).abs() < epsilon);
+}

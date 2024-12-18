@@ -1,7 +1,11 @@
 use std::io::{Cursor, Read, Error};
 use std::fmt;
 
+use primitive_types::U256;
+
 use crate::utils::hash256::hash256;
+
+use super::utils::bits_to_target;
 
 pub struct Block { // all these fields are stored as little endian
     pub version: [u8; 4],
@@ -97,6 +101,14 @@ impl Block {
     pub fn bip141(&self) -> bool {
         let version: u32 = u32::from_le_bytes(self.version);
         version >> 1 & 1 == 1
+    }
+
+    pub fn difficulty(&self) -> f64 {
+        let target = bits_to_target(self.bits);
+        let multiplier = U256::from_str_radix("ffff", 16).unwrap();
+        let exponent = U256::from_str_radix("1d", 16).unwrap() - 3;
+        let difficulty_u256  =  multiplier * U256::from(256).pow(exponent) / target;
+        difficulty_u256.as_u128() as f64
     }
 }
 
