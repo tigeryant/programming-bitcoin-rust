@@ -110,6 +110,16 @@ impl Block {
         let difficulty_u256  =  multiplier * U256::from(256).pow(exponent) / target;
         difficulty_u256.as_u128() as f64
     }
+
+    pub fn check_pow(&self) -> bool {
+        let hash = U256::from_big_endian(&self.hash());
+        let target = bits_to_target(self.bits);
+        let formatted_hash = format!("{:064x}", hash);
+        let formatted_target = format!("{:064x}", target);
+        println!("{}", formatted_hash);
+        println!("{}", formatted_target);
+        hash < target
+    }
 }
 
 impl fmt::Display for Block {
