@@ -56,6 +56,24 @@ impl NetworkEnvolope {
             payload
         })
     }
+
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+
+        result.extend_from_slice(&self.magic);
+
+        result.extend_from_slice(&self.command);
+
+        let payload_length: [u8; 4] = (self.payload.len() as u32).to_le_bytes();
+        result.extend_from_slice(&payload_length);
+
+        let payload_checksum: [u8; 4] = hash256(&self.payload)[..4].try_into().unwrap();
+        result.extend_from_slice(&payload_checksum);
+
+        result.extend_from_slice(&self.payload);
+
+        result
+    }
 }
 
 impl fmt::Display for NetworkEnvolope {
