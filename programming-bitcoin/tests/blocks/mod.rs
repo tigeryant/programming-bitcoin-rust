@@ -1,7 +1,7 @@
 use std::io::Cursor;
 
 use primitive_types::U256;
-use programming_bitcoin::blocks::{block::Block, utils::bits_to_target};
+use programming_bitcoin::blocks::{block::Block, utils::{bits_to_target, calculate_new_bits, target_to_bits, TWO_WEEKS}};
 
 #[test]
 fn parse_block() {
@@ -94,8 +94,8 @@ fn bip141() {
 #[test]
 fn test_bits_to_target() {
     let bits: [u8; 4] = hex::decode("e93c0118").unwrap().try_into().unwrap();
-    let output = bits_to_target(bits);
-    let expected = U256::from_str_radix("0000000000000000013ce9000000000000000000000000000000000000000000", 16).unwrap();
+    let output = bits_to_target(bits); // output is in big endian
+    let expected = U256::from_str_radix("0000000000000000013ce9000000000000000000000000000000000000000000", 16).unwrap(); // big endian
     assert_eq!(output, expected);
 }
 
@@ -116,4 +116,72 @@ fn test_check_pow() {
     let mut stream: Cursor<Vec<u8>> =  Cursor::new(raw_block);
     let block = Block::parse(&mut stream).unwrap();
     assert!(block.check_pow());
+}
+
+#[test]
+// #[ignore]
+fn test_difficulty_adjustment() {
+    // from exercise 12
+    let last_block = hex::decode("02000020f1472d9db4b563c35f97c428ac903f23b7fc055d1cfc26000000000000000000b3f449fcbe1bc4cfbcb8283a0d2c037f961a3fdf2b8bedc144973735eea707e1264258597e8b0118e5f00474").unwrap();
+    let mut stream: Cursor<Vec<u8>> =  Cursor::new(last_block);
+    let last_block = Block::parse(&mut stream).unwrap();
+    
+    // from exercise 12
+    let first_block = hex::decode("000000203471101bbda3fe307664b3283a9ef0e97d9a38a7eacd8800000000000000000010c8aba8479bbaa5e0848152fd3c2289ca50e1c3e58c9a4faaafbdf5803c5448ddb845597e8b0118e43a81d3").unwrap();
+    let mut stream: Cursor<Vec<u8>> =  Cursor::new(first_block);
+    let first_block = Block::parse(&mut stream).unwrap();
+
+    let last_timestamp = u32::from_le_bytes(last_block.timestamp);
+    let first_timestamp = u32::from_le_bytes(first_block.timestamp);
+    dbg!(last_timestamp);
+    dbg!(first_timestamp);
+    let mut time_differential = last_timestamp - first_timestamp;
+
+    if time_differential > TWO_WEEKS * 4 {
+        time_differential = TWO_WEEKS * 4;
+    } else if time_differential < TWO_WEEKS / 4 {
+        time_differential = TWO_WEEKS / 4
+    }
+
+    let new_target = last_block.target() * time_differential / TWO_WEEKS;
+    // from p175 - incorrect
+    // let expected_target = U256::from_str_radix("0000000000000000007615000000000000000000000000000000000000000000", 16).unwrap();
+    let expected_target = U256::from_str_radix("0000000000000000018d30aa2cdc67600f9a9342cdc67600f9a9342cdc67600f", 16).unwrap();
+    let formatted_new_target = format!("{:064x}", new_target);
+    let formatted_expected_target = format!("{:064x}", expected_target);
+    println!("{}", formatted_new_target);
+    println!("{}", formatted_expected_target);
+    assert_eq!(new_target, expected_target);
+}
+
+#[test]
+fn test_target_to_bits() {
+    let target = U256::from_str_radix("0000000000000000013ce9000000000000000000000000000000000000000000", 16).unwrap(); // big endian
+    let output_bits = target_to_bits(target); // produces little endian
+    println!("output bits: {}", hex::encode(output_bits));
+    let expected_bits: [u8; 4] = hex::decode("e93c0118").unwrap().try_into().unwrap(); // little endian
+    // let expected_bits: [u8; 4] = hex::decode("18013ce9").unwrap().try_into().unwrap(); // big endian
+    println!("expected bits: {}", hex::encode(expected_bits));
+    assert_eq!(output_bits, expected_bits);
+}
+
+#[test]
+fn test_calculate_new_bits() {
+    let first_block = hex::decode("000000203471101bbda3fe307664b3283a9ef0e97d9a38a7eacd8800000000000000000010c8aba8479bbaa5e0848152fd3c2289ca50e1c3e58c9a4faaafbdf5803c5448ddb845597e8b0118e43a81d3").unwrap();
+    let mut stream: Cursor<Vec<u8>> =  Cursor::new(first_block);
+    let first_block = Block::parse(&mut stream).unwrap();
+    dbg!(hex::encode(first_block.hash())); // 471744
+
+    let last_block = hex::decode("02000020f1472d9db4b563c35f97c428ac903f23b7fc055d1cfc26000000000000000000b3f449fcbe1bc4cfbcb8283a0d2c037f961a3fdf2b8bedc144973735eea707e1264258597e8b0118e5f00474").unwrap();
+    let mut stream: Cursor<Vec<u8>> =  Cursor::new(last_block);
+    let last_block = Block::parse(&mut stream).unwrap();
+    dbg!(hex::encode(last_block.hash())); // 473759
+
+    let new_bits = calculate_new_bits(first_block, last_block); // 18018d30
+    dbg!(hex::encode(new_bits)); // new bits in little endian
+    // expected (little endian): 308d0118
+    let expected_bits: [u8; 4] = hex::decode("308d0118").unwrap().try_into().unwrap(); // little endian
+    // let expected_bits: [u8; 4] = hex::decode("18018d30").unwrap().try_into().unwrap(); // big endian (as seen on explorer)
+    dbg!(hex::encode(expected_bits));
+    assert_eq!(new_bits, expected_bits);
 }

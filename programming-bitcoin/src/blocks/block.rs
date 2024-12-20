@@ -120,6 +120,10 @@ impl Block {
         println!("{}", formatted_target);
         hash < target
     }
+
+    pub fn target(&self) -> U256 {
+        bits_to_target(self.bits)
+    }
 }
 
 impl fmt::Display for Block {
