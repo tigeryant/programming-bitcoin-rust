@@ -38,7 +38,6 @@ impl NetworkEnvolope {
 
         let payload_length = u32::from_le_bytes(payload_length);
 
-        // get the checksum
         let mut parsed_checksum = [0u8; 4];
         reader.read_exact(&mut parsed_checksum)?;
         
@@ -71,10 +70,15 @@ impl fmt::Display for NetworkEnvolope {
             _ => "invalid magic".to_string()
         };
 
-        write!(f, "Magic:{}\nCommand: {}\nPayload: {}", 
+        let payload = match self.payload.len() {
+            0 => "<no payload>",
+            _ => &hex::encode(&self.payload)
+        };
+
+        write!(f, "Magic: {}\nCommand: {}\nPayload: {}", 
             magic,
             command_str,
-            hex::encode(&self.payload),
+            payload,
         )
     }
 }
