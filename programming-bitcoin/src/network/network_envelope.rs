@@ -30,9 +30,16 @@ impl fmt::Display for NetworkEnvolope {
             .trim_matches(char::from(0))
             .to_string();
             
-        write!(f, "Command: {}\nPayload: {}", 
+        let magic: String = match self.magic {
+            [0xf9, 0xbe, 0xb4, 0xd9] => "mainnet".to_string(),
+            [0x0b, 0x11, 0x09, 0x07] => "testnet".to_string(),
+            _ => "invalid magic".to_string()
+        };
+
+        write!(f, "Command: {}\nPayload: {}\nMagic:{}", 
             command_str,
-            hex::encode(&self.payload)
+            hex::encode(&self.payload),
+            magic
         )
     }
 }
