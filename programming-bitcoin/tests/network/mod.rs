@@ -10,3 +10,6 @@ fn test_parse_network_message() {
     assert!(output_message.is_ok());
     println!("{}", output_message.unwrap());
 }
+
+#[test]
+// test NetworkEnvelope::new, VersionMessage::new, VersionMessage::serialize

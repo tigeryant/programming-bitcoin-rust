@@ -18,7 +18,6 @@ pub struct VersionMessage {
 }
 
 impl VersionMessage {
-    // how to derive the command??
     pub fn new(
         version: [u8; 4],
         services: [u8; 8],
@@ -66,5 +65,38 @@ impl VersionMessage {
             latest_block,
             relay,
         }
+    }
+
+    // Serializes an instance of self into a byte vector
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+
+        result.extend_from_slice(&self.version);
+
+        result.extend_from_slice(&self.services);
+
+        result.extend_from_slice(&self.timestamp);
+
+        result.extend_from_slice(&self.receiver_services);
+
+        result.extend_from_slice(&self.receiver_ip);
+
+        result.extend_from_slice(&self.receiver_port);
+
+        result.extend_from_slice(&self.sender_services);
+
+        result.extend_from_slice(&self.sender_ip);
+
+        result.extend_from_slice(&self.sender_port);
+
+        result.extend_from_slice(&self.nonce);
+
+        result.extend_from_slice(&self.user_agent);
+
+        result.extend_from_slice(&self.latest_block.to_le_bytes()); // to big or little endian?
+
+        result.extend_from_slice(&[u8::from(self.relay)]);
+
+        result
     }
 }
