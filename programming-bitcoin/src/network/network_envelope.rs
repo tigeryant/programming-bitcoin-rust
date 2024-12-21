@@ -2,8 +2,8 @@ use std::{fmt, io::{Cursor, Error, Read}};
 
 use crate::utils::hash256::hash256;
 
-const MAINNET_NETWORK_MAGIC: [u8; 4] = [0xf9, 0xbe, 0xb4, 0xd9]; 
-const TESTNET_NETWORK_MAGIC: [u8; 4] = [0x0b, 0x11, 0x09, 0x07];
+pub const MAINNET_NETWORK_MAGIC: [u8; 4] = [0xf9, 0xbe, 0xb4, 0xd9]; 
+pub const TESTNET_NETWORK_MAGIC: [u8; 4] = [0x0b, 0x11, 0x09, 0x07];
 
 pub struct NetworkEnvolope {
     pub magic: [u8; 4],
@@ -72,6 +72,16 @@ impl NetworkEnvolope {
 
         result.extend_from_slice(&self.payload);
 
+        result
+    }
+
+    // Converts a given string to a byte vector
+    pub fn command_as_array(command: &str) -> [u8; 12] {
+        let mut result = [0u8; 12];
+        for (i, byte) in command.bytes().enumerate() {
+            if i >= 12 { break; }
+            result[i] = byte;
+        }
         result
     }
 }
