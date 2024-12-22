@@ -1,5 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::utils::varint::encode_varint;
+
 pub struct VersionMessage {
     pub command: String,
     pub version: [u8; 4],
@@ -47,9 +49,9 @@ impl VersionMessage {
                 .to_le_bytes(),
         };
 
-        let receiver_port: [u8; 2] = receiver_port.to_le_bytes();
+        let receiver_port: [u8; 2] = receiver_port.to_be_bytes();
 
-        let sender_port: [u8; 2] = sender_port.to_le_bytes();
+        let sender_port: [u8; 2] = sender_port.to_be_bytes();
 
         let nonce: [u8; 8] = match nonce {
             Some(nonce) => nonce.to_le_bytes(),
@@ -100,9 +102,11 @@ impl VersionMessage {
 
         result.extend_from_slice(&self.nonce);
 
+        result.extend_from_slice(&encode_varint(self.user_agent.len() as u64));
+
         result.extend_from_slice(&self.user_agent);
 
-        result.extend_from_slice(&self.latest_block.to_le_bytes()); // to big or little endian?
+        result.extend_from_slice(&self.latest_block.to_le_bytes());
 
         result.extend_from_slice(&[u8::from(self.relay)]);
 
