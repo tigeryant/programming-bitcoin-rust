@@ -112,4 +112,47 @@ impl VersionMessage {
 
         result
     }
+
+    pub fn new_default_message() -> Self {
+        let version: u32 = 70015;
+        let services: [u8; 8] = hex::decode("0000000000000000").unwrap().try_into().unwrap();
+        let timestamp: Option<u64> = Some(
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+        );
+        let receiver_services: [u8; 8] = hex::decode("0000000000000000").unwrap().try_into().unwrap();
+        let receiver_ip: [u8; 16] = hex::decode("00000000000000000000ffff00000000")
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let receiver_port: u16 = 8333;
+        let sender_services: [u8; 8] = hex::decode("0000000000000000").unwrap().try_into().unwrap();
+        let sender_ip: [u8; 16] = hex::decode("00000000000000000000ffff00000000")
+            .unwrap()
+            .try_into()
+            .unwrap();
+        let sender_port: u16 = 8333;
+        let nonce: Option<u64> = Some(rand::random::<u64>());
+        let user_agent: &str = "/programmingblockchain:0.1/";
+        let latest_block: u32 = 0;
+        let relay: bool = true;
+    
+        VersionMessage::new(
+            version,
+            services,
+            timestamp,
+            receiver_services,
+            receiver_ip,
+            receiver_port,
+            sender_services,
+            sender_ip,
+            sender_port,
+            nonce,
+            user_agent,
+            latest_block,
+            relay,
+        )
+    }
 }

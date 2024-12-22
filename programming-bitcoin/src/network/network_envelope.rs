@@ -5,22 +5,28 @@ use crate::utils::hash256::hash256;
 pub const MAINNET_NETWORK_MAGIC: [u8; 4] = [0xf9, 0xbe, 0xb4, 0xd9]; 
 pub const TESTNET_NETWORK_MAGIC: [u8; 4] = [0x0b, 0x11, 0x09, 0x07];
 
-pub struct NetworkEnvolope {
+pub struct NetworkEnvelope {
     pub magic: [u8; 4],
     pub command: [u8; 12],
     pub payload: Vec<u8>
 }
 
-impl NetworkEnvolope {
-    pub fn new(command: [u8; 12], payload: Vec<u8>, testnet: bool) -> Self {
+impl NetworkEnvelope {
+    pub fn new(command: &str, payload: Vec<u8>, testnet: bool) -> Self {
         let magic = match testnet {
             true => TESTNET_NETWORK_MAGIC,
             _ => MAINNET_NETWORK_MAGIC
         };
 
+        let mut command_bytes = [0u8; 12];
+        for (i, byte) in command.bytes().enumerate() {
+            if i >= 12 { break; }
+            command_bytes[i] = byte;
+        }
+
         Self {
             magic,
-            command,
+            command: command_bytes,
             payload
         }
     }
@@ -75,18 +81,9 @@ impl NetworkEnvolope {
         result
     }
 
-    // Converts a given string to a byte vector
-    pub fn command_as_array(command: &str) -> [u8; 12] {
-        let mut result = [0u8; 12];
-        for (i, byte) in command.bytes().enumerate() {
-            if i >= 12 { break; }
-            result[i] = byte;
-        }
-        result
-    }
 }
 
-impl fmt::Display for NetworkEnvolope {
+impl fmt::Display for NetworkEnvelope {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let command_str = String::from_utf8_lossy(&self.command)
             .trim_matches(char::from(0))
