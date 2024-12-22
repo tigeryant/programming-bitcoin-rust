@@ -1,42 +1,45 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct VersionMessage {
-    command: String,
-    version: [u8; 4],
-    services: [u8; 8],
-    timestamp: [u8; 8],
-    receiver_services: [u8; 8],
-    receiver_ip: [u8; 16],
-    receiver_port: [u8; 2],
-    sender_services: [u8; 8],
-    sender_ip: [u8; 16],
-    sender_port: [u8; 2],
-    nonce: [u8; 8],
-    user_agent: Vec<u8>,
-    latest_block: u32,
-    relay: bool,
+    pub command: String,
+    pub version: [u8; 4],
+    pub services: [u8; 8],
+    pub timestamp: [u8; 8],
+    pub receiver_services: [u8; 8],
+    pub receiver_ip: [u8; 16],
+    pub receiver_port: [u8; 2],
+    pub sender_services: [u8; 8],
+    pub sender_ip: [u8; 16],
+    pub sender_port: [u8; 2],
+    pub nonce: [u8; 8],
+    pub user_agent: Vec<u8>,
+    pub latest_block: u32,
+    pub relay: bool,
 }
 
 impl VersionMessage {
+    // take version as a u32, convert to [u8; 4]
     pub fn new(
-        version: [u8; 4],
+        version: u32,
         services: [u8; 8],
-        timestamp: Option<[u8; 8]>,
+        timestamp: Option<u64>,
         receiver_services: [u8; 8],
         receiver_ip: [u8; 16],
-        receiver_port: [u8; 2],
+        receiver_port: u16,
         sender_services: [u8; 8],
         sender_ip: [u8; 16],
-        sender_port: [u8; 2],
-        nonce: Option<[u8; 8]>,
-        user_agent: Vec<u8>,
+        sender_port: u16,
+        nonce: Option<u64>,
+        user_agent: &str,
         latest_block: u32,
         relay: bool,
     ) -> Self {
         let command = String::from("version");
 
+        let version: [u8; 4] = version.to_le_bytes();
+
         let timestamp: [u8; 8] = match timestamp {
-            Some(timestamp) => timestamp,
+            Some(timestamp) => timestamp.to_le_bytes(),
             None => SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
@@ -44,10 +47,16 @@ impl VersionMessage {
                 .to_le_bytes(),
         };
 
+        let receiver_port: [u8; 2] = receiver_port.to_le_bytes();
+
+        let sender_port: [u8; 2] = sender_port.to_le_bytes();
+
         let nonce: [u8; 8] = match nonce {
-            Some(nonce) => nonce,
+            Some(nonce) => nonce.to_le_bytes(),
             None => rand::random::<u64>().to_le_bytes(),
         };
+
+        let user_agent: Vec<u8> = user_agent.as_bytes().to_vec();
 
         Self {
             command,

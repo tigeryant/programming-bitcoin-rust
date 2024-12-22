@@ -2,6 +2,8 @@ use std::io::Cursor;
 
 use programming_bitcoin::network::network_envelope::NetworkEnvolope;
 use programming_bitcoin::network::network_envelope::{TESTNET_NETWORK_MAGIC, MAINNET_NETWORK_MAGIC};
+use programming_bitcoin::network::version_message::VersionMessage;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 
 #[test]
@@ -31,10 +33,40 @@ fn test_parse_network_message() {
     println!("{}", output_message.unwrap());
 }
 
-// test VersionMessage::new, VersionMessage::serialize
 #[test]
 fn test_new_version_message() {
+    let version: u32 = 70015;
+    let services: [u8; 8] = hex::decode("0000000000000000").unwrap().try_into().unwrap();
+    let timestamp: Option<u64> = Some(SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs());
+    let receiver_services: [u8; 8] = hex::decode("0000000000000000").unwrap().try_into().unwrap();
+    let receiver_ip: [u8; 16] = hex::decode("00000000000000000000ffff00000000").unwrap().try_into().unwrap();
+    let receiver_port: u16 = 8333;
+    let sender_services: [u8; 8] = hex::decode("0000000000000000").unwrap().try_into().unwrap();
+    let sender_ip: [u8; 16] = hex::decode("00000000000000000000ffff00000000").unwrap().try_into().unwrap();
+    let sender_port: u16 = 8333;
+    let nonce: Option<u64> = Some(rand::random::<u64>());
+    let user_agent: &str = "/programmingblockchain:0.1/";
+    let latest_block: u32 = 0;
+    let relay : bool= true;
 
+    let version_message = VersionMessage::new(version, services, timestamp, receiver_services, receiver_ip, receiver_port, sender_services, sender_ip, sender_port, nonce, user_agent, latest_block, relay);
+
+    assert_eq!(version, u32::from_le_bytes(version_message.version));
+    assert_eq!(services, version_message.services);
+    assert_eq!(timestamp, Some(u64::from_le_bytes(version_message.timestamp)));
+    assert_eq!(receiver_services, version_message.receiver_services);
+    assert_eq!(receiver_ip, version_message.receiver_ip);
+    assert_eq!(receiver_port, u16::from_le_bytes(version_message.receiver_port));
+    assert_eq!(sender_services, version_message.sender_services);
+    assert_eq!(sender_ip, version_message.sender_ip);
+    assert_eq!(sender_port, u16::from_le_bytes(version_message.sender_port));
+    assert_eq!(nonce, Some(u64::from_le_bytes(version_message.nonce)));
+    assert_eq!(user_agent, String::from_utf8(version_message.user_agent).unwrap());
+    assert_eq!(latest_block, version_message.latest_block);
+    assert_eq!(relay, version_message.relay);
 }
 
 #[test]
