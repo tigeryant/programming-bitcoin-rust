@@ -3,7 +3,7 @@ use std::io::Cursor;
 use programming_bitcoin::network::network_envelope::NetworkEnvelope;
 use programming_bitcoin::network::utils::handshake;
 use programming_bitcoin::network::network_envelope::{TESTNET_NETWORK_MAGIC, MAINNET_NETWORK_MAGIC};
-use programming_bitcoin::network::version_message::VersionMessage;
+use programming_bitcoin::network::version_message::{self, VersionMessage};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 
@@ -37,7 +37,9 @@ fn test_parse_network_message() {
     let mut stream: Cursor<Vec<u8>> =  Cursor::new(raw_message);
     let output_message = NetworkEnvelope::parse(&mut stream);
     assert!(output_message.is_ok());
-    println!("{}", output_message.unwrap());
+    let output_message = output_message.unwrap();
+    println!("{}", hex::encode(output_message.clone().serialize()));
+    println!("{}", output_message);
 }
 
 #[test]
@@ -101,5 +103,14 @@ fn test_serialize_version_message() {
 
 #[test]
 fn test_handshake() {
-    handshake().unwrap();
+    let host: &str = "192.168.2.4"; // node ip
+    let port: u32 = 18333; // default testnet port
+
+    // Create and serialize a version message
+    let version = VersionMessage::new_default_message();
+    let serialized_version = version.serialize();
+    dbg!(hex::encode(serialized_version));
+    let network_envelope = NetworkEnvelope::new("version", version.serialize(), true);
+
+    handshake(host, port, network_envelope).unwrap();
 }

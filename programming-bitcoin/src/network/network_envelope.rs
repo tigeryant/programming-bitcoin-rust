@@ -3,8 +3,9 @@ use std::{fmt, io::{Cursor, Error, Read}};
 use crate::utils::hash256::hash256;
 
 pub const MAINNET_NETWORK_MAGIC: [u8; 4] = [0xf9, 0xbe, 0xb4, 0xd9]; 
-pub const TESTNET_NETWORK_MAGIC: [u8; 4] = [0x0b, 0x11, 0x09, 0x07];
+pub const TESTNET_NETWORK_MAGIC: [u8; 4] = [0x0b, 0x11, 0x09, 0x07]; // testnet3
 
+#[derive(Clone)]
 pub struct NetworkEnvelope {
     pub magic: [u8; 4],
     pub command: [u8; 12],

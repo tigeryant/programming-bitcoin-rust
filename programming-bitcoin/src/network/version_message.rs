@@ -48,6 +48,7 @@ impl VersionMessage {
                 .as_secs()
                 .to_le_bytes(),
         };
+        dbg!(u64::from_le_bytes(timestamp));
 
         let receiver_port: [u8; 2] = receiver_port.to_be_bytes();
 
@@ -123,21 +124,21 @@ impl VersionMessage {
                 .as_secs(),
         );
         let receiver_services: [u8; 8] = hex::decode("0000000000000000").unwrap().try_into().unwrap();
-        let receiver_ip: [u8; 16] = hex::decode("00000000000000000000ffff00000000")
+        let receiver_ip: [u8; 16] = hex::decode("00000000000000000000ffffc0a80204") // node ip - big endian
             .unwrap()
             .try_into()
             .unwrap();
-        let receiver_port: u16 = 8333;
+        let receiver_port: u16 = 18333; // node port
         let sender_services: [u8; 8] = hex::decode("0000000000000000").unwrap().try_into().unwrap();
-        let sender_ip: [u8; 16] = hex::decode("00000000000000000000ffff00000000")
+        let sender_ip: [u8; 16] = hex::decode("00000000000000000000ffffa9fe274d") // local ip
             .unwrap()
             .try_into()
             .unwrap();
-        let sender_port: u16 = 8333;
+        let sender_port: u16 = 18333; // local port
         let nonce: Option<u64> = Some(rand::random::<u64>());
         let user_agent: &str = "/programmingblockchain:0.1/";
-        let latest_block: u32 = 0;
-        let relay: bool = true;
+        let latest_block: u32 = 3577725; // latest block - use API instead of hardcoding
+        let relay: bool = false;
     
         VersionMessage::new(
             version,
