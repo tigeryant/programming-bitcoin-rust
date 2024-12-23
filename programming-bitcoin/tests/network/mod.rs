@@ -1,9 +1,9 @@
 use std::io::Cursor;
 
 use programming_bitcoin::network::network_envelope::NetworkEnvelope;
-use programming_bitcoin::network::utils::handshake;
+use programming_bitcoin::network::handshake::handshake;
 use programming_bitcoin::network::network_envelope::{TESTNET_NETWORK_MAGIC, MAINNET_NETWORK_MAGIC};
-use programming_bitcoin::network::version_message::{self, VersionMessage};
+use programming_bitcoin::network::messages::version::VersionMessage;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 
@@ -102,6 +102,7 @@ fn test_serialize_version_message() {
 }
 
 #[test]
+#[ignore]
 fn test_handshake() {
     let host: &str = "192.168.2.4"; // node ip
     let port: u32 = 18333; // default testnet port
