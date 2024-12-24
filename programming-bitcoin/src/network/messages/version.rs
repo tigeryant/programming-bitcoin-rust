@@ -1,6 +1,6 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{io::{Cursor, Error, Read}, time::{SystemTime, UNIX_EPOCH}};
 
-use crate::utils::varint::encode_varint;
+use crate::{network::network_message::NetworkMessage, utils::varint::{encode_varint, read_varint}};
 
 pub struct VersionMessage {
     pub command: String,
@@ -79,41 +79,6 @@ impl VersionMessage {
         }
     }
 
-    // Serializes an instance of self into a byte vector
-    pub fn serialize(&self) -> Vec<u8> {
-        let mut result = Vec::new();
-
-        result.extend_from_slice(&self.version);
-
-        result.extend_from_slice(&self.services);
-
-        result.extend_from_slice(&self.timestamp);
-
-        result.extend_from_slice(&self.receiver_services);
-
-        result.extend_from_slice(&self.receiver_ip);
-
-        result.extend_from_slice(&self.receiver_port);
-
-        result.extend_from_slice(&self.sender_services);
-
-        result.extend_from_slice(&self.sender_ip);
-
-        result.extend_from_slice(&self.sender_port);
-
-        result.extend_from_slice(&self.nonce);
-
-        result.extend_from_slice(&encode_varint(self.user_agent.len() as u64));
-
-        result.extend_from_slice(&self.user_agent);
-
-        result.extend_from_slice(&self.latest_block.to_le_bytes());
-
-        result.extend_from_slice(&[u8::from(self.relay)]);
-
-        result
-    }
-
     pub fn new_default_message() -> Self {
         let version: u32 = 70015;
         let services: [u8; 8] = hex::decode("0000000000000000").unwrap().try_into().unwrap();
@@ -155,5 +120,113 @@ impl VersionMessage {
             latest_block,
             relay,
         )
+    }
+}
+
+impl NetworkMessage for VersionMessage {
+    fn command(&self) -> &str {
+        &self.command
+    }
+
+    // Serializes an instance of self into a byte vector
+    fn serialize(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+
+        result.extend_from_slice(&self.version);
+
+        result.extend_from_slice(&self.services);
+
+        result.extend_from_slice(&self.timestamp);
+
+        result.extend_from_slice(&self.receiver_services);
+
+        result.extend_from_slice(&self.receiver_ip);
+
+        result.extend_from_slice(&self.receiver_port);
+
+        result.extend_from_slice(&self.sender_services);
+
+        result.extend_from_slice(&self.sender_ip);
+
+        result.extend_from_slice(&self.sender_port);
+
+        result.extend_from_slice(&self.nonce);
+
+        result.extend_from_slice(&encode_varint(self.user_agent.len() as u64));
+
+        result.extend_from_slice(&self.user_agent);
+
+        result.extend_from_slice(&self.latest_block.to_le_bytes());
+
+        result.extend_from_slice(&[u8::from(self.relay)]);
+
+        result
+    }
+
+    fn parse(reader: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
+        let command = String::from("version");
+
+        let mut version = [0u8; 4];
+        reader.read_exact(&mut version)?;       
+
+        let mut services = [0u8; 8];
+        reader.read_exact(&mut services)?;
+
+        let mut timestamp = [0u8; 8];
+        reader.read_exact(&mut timestamp)?;       
+
+        let mut receiver_services = [0u8; 8];
+        reader.read_exact(&mut receiver_services)?;
+
+        let mut receiver_ip = [0u8; 16];
+        reader.read_exact(&mut receiver_ip)?;
+
+        let mut receiver_port = [0u8; 2];
+        reader.read_exact(&mut receiver_port)?;
+
+        let mut sender_services = [0u8; 8];
+        reader.read_exact(&mut sender_services)?;
+
+        let mut sender_ip = [0u8; 16];
+        reader.read_exact(&mut sender_ip)?;
+
+        let mut sender_port = [0u8; 2];
+        reader.read_exact(&mut sender_port)?;
+
+        let mut nonce = [0u8; 8];
+        reader.read_exact(&mut nonce)?;
+
+        // read and discard the varint
+        // can we discard this value?
+        let user_agent_length = read_varint(reader).unwrap();
+
+        let mut user_agent = vec![];
+        reader.read_exact(&mut user_agent)?;
+
+        let mut latest_block = [0u8; 4];
+        reader.read_exact(&mut latest_block)?; // read 4 bytes (of little endian) and convert to u32
+        let latest_block = u32::from_le_bytes(latest_block);
+
+        let mut relay =  [0u8; 1];
+        reader.read_exact(&mut relay)?; // read a single byte and convert to a bool
+        let relay = relay[0] != 0;
+
+
+        Ok(Self {
+            version,
+            services,
+            command,
+            timestamp,
+            receiver_services,
+            receiver_ip,
+            receiver_port,
+            sender_services,
+            sender_ip,
+            sender_port,
+            nonce,
+            user_agent,
+            latest_block,
+            relay
+        })
     }
 }

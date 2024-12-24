@@ -1,7 +1,7 @@
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 use crate::network::network_envelope::NetworkEnvelope;
-use std::io::{Cursor, Read, Error};
+use std::io::Cursor;
 
 #[tokio::main]
 pub async fn handshake(host: &str, port: u32, network_envelope: NetworkEnvelope) -> Result<(), Box<dyn std::error::Error>> {
