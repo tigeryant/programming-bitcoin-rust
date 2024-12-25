@@ -5,6 +5,7 @@ use programming_bitcoin::network::handshake::handshake;
 use programming_bitcoin::network::network_envelope::{TESTNET_NETWORK_MAGIC, MAINNET_NETWORK_MAGIC};
 use programming_bitcoin::network::messages::version::VersionMessage;
 use programming_bitcoin::network::network_message::NetworkMessage;
+// use programming_bitcoin::network::node::Node;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 
@@ -116,3 +117,11 @@ fn test_handshake() {
 
     handshake(host, port, network_envelope).unwrap();
 }
+
+/*
+#[test]
+fn test_node_handshake() {
+    Node::handshake();
+    // assert!(Node::handshake().await.is_ok());
+}
+ */

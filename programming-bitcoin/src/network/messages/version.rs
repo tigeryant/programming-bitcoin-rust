@@ -1,7 +1,8 @@
 use std::{io::{Cursor, Error, Read}, time::{SystemTime, UNIX_EPOCH}};
 
-use crate::{network::network_message::NetworkMessage, utils::varint::{encode_varint, read_varint}};
+use crate::{network::{get_block_tip::get_block_tip, network_message::NetworkMessage}, utils::varint::{encode_varint, read_varint}};
 
+#[derive(Clone)]
 pub struct VersionMessage {
     pub command: String,
     pub version: [u8; 4],
@@ -102,7 +103,8 @@ impl VersionMessage {
         let sender_port: u16 = 18333; // local port
         let nonce: Option<u64> = Some(rand::random::<u64>());
         let user_agent: &str = "/programmingblockchain:0.1/";
-        let latest_block: u32 = 3577725; // latest block - use API instead of hardcoding
+        let latest_block: u32 = get_block_tip().unwrap(); 
+        // let latest_block: u32 = 3577725; // latest block - use API instead of hardcoding
         let relay: bool = false;
     
         VersionMessage::new(
@@ -163,7 +165,7 @@ impl NetworkMessage for VersionMessage {
         result
     }
 
-    fn parse(reader: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
+    fn parse(&self, reader: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
         let command = String::from("version");
 
         let mut version = [0u8; 4];
@@ -204,11 +206,11 @@ impl NetworkMessage for VersionMessage {
         reader.read_exact(&mut user_agent)?;
 
         let mut latest_block = [0u8; 4];
-        reader.read_exact(&mut latest_block)?; // read 4 bytes (of little endian) and convert to u32
+        reader.read_exact(&mut latest_block)?;
         let latest_block = u32::from_le_bytes(latest_block);
 
         let mut relay =  [0u8; 1];
-        reader.read_exact(&mut relay)?; // read a single byte and convert to a bool
+        reader.read_exact(&mut relay)?;
         let relay = relay[0] != 0;
 
 

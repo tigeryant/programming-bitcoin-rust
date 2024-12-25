@@ -2,6 +2,7 @@ use std::io::{Cursor, Error, Read};
 
 use crate::network::network_message::NetworkMessage;
 
+#[derive(Clone)]
 pub struct PongMessage {
     pub command: String,
     pub nonce: [u8; 8]
@@ -18,14 +19,6 @@ impl PongMessage {
             nonce
         }
     }
-
-    pub fn parse() {
-
-    }
-
-    pub fn serialize() {
-
-    }
 }
 
 impl NetworkMessage for PongMessage {
@@ -37,7 +30,7 @@ impl NetworkMessage for PongMessage {
         vec![]
     }
 
-    fn parse(reader: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
+    fn parse(&self, reader: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
         let command = String::from("pong");
 
         let mut nonce = [0u8; 8];

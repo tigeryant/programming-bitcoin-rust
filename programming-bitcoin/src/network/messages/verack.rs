@@ -2,6 +2,7 @@ use std::io::{Cursor, Error};
 
 use crate::network::network_message::NetworkMessage;
 
+#[derive(Clone)]
 pub struct VerAckMessage {
     pub command: String,
 }
@@ -25,10 +26,16 @@ impl NetworkMessage for VerAckMessage {
         vec![]
     }
 
-    fn parse(_: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
+    fn parse(&self, _: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
         let command = String::from("verack");
         Ok(Self {
             command
         })
+    }
+}
+
+impl Default for VerAckMessage {
+    fn default() -> Self {
+        Self::new()
     }
 }
