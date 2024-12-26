@@ -228,7 +228,7 @@ impl NetworkMessage for VersionMessage {
         })
     }
 
-    async fn default_async(_: &str) -> Self {
-        Self::new_default_message().await
+    async fn default_async(_: &str) -> Result<Self, Error> {
+        Ok(Self::new_default_message().await)
     }
 }

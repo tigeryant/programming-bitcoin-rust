@@ -33,8 +33,8 @@ impl NetworkMessage for VerAckMessage {
         })
     }
 
-    async fn default_async(_: &str) -> Self {
-        Self::new()
+    async fn default_async(_: &str) -> Result<Self, Error>{
+        Ok(Self::new())
     }
 }
 

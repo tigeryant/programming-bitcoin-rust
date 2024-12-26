@@ -6,7 +6,7 @@ pub trait NetworkMessage where Self: Sized {
     fn command(&self) -> &str;
     fn serialize(&self) -> Vec<u8>;
     fn parse(&self, stream: &mut Cursor<Vec<u8>>) -> Result<Self, Error>;
-    async fn default_async(cmd: &str) -> Self;
+    async fn default_async(cmd: &str) -> Result<Self, Error>;
 }
 
 #[derive(Clone)]
@@ -50,21 +50,19 @@ impl NetworkMessage for NetworkMessages {
         }
     }
 
-    async fn default_async(cmd: &str) -> Self {
-        println!("{}", cmd);
+    async fn default_async(cmd: &str) -> Result<Self, Error> {
         match cmd {
-            // shouldn't be matchable
-            "version" => NetworkMessages::Version(VersionMessage::default_async(cmd).await),
-            // could match
-            "verack" => NetworkMessages::VerAck(VerAckMessage::default_async(cmd).await),
-            // shouldn't be matchable
-            "ping" => NetworkMessages::Pong(PongMessage::default_async(cmd).await),
-            // update this default
-            _ => NetworkMessages::Version(VersionMessage::default_async(cmd).await)
+            "version" => Ok(NetworkMessages::Version(VersionMessage::default_async(cmd).await.unwrap())),
+            "verack" => Ok(NetworkMessages::VerAck(VerAckMessage::default_async(cmd).await.unwrap())),
+            _ => Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                format!("Unsupported command: {}", cmd)
+            ))
         }
     }
 }
 
+// reimplement this
 /*
 impl Default for NetworkMessages {
     fn default() -> Self {
