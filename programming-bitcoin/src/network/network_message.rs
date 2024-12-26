@@ -6,6 +6,7 @@ pub trait NetworkMessage where Self: Sized {
     fn command(&self) -> &str;
     fn serialize(&self) -> Vec<u8>;
     fn parse(&self, stream: &mut Cursor<Vec<u8>>) -> Result<Self, Error>;
+    async fn default_async(cmd: &str) -> Self;
 }
 
 #[derive(Clone)]
@@ -49,10 +50,25 @@ impl NetworkMessage for NetworkMessages {
         }
     }
 
-}
-
-impl Default for NetworkMessages {
-    fn default() -> Self {
-        NetworkMessages::Version(VersionMessage::new_default_message())
+    async fn default_async(cmd: &str) -> Self {
+        println!("{}", cmd);
+        match cmd {
+            // shouldn't be matchable
+            "version" => NetworkMessages::Version(VersionMessage::default_async(cmd).await),
+            // could match
+            "verack" => NetworkMessages::VerAck(VerAckMessage::default_async(cmd).await),
+            // shouldn't be matchable
+            "ping" => NetworkMessages::Pong(PongMessage::default_async(cmd).await),
+            // update this default
+            _ => NetworkMessages::Version(VersionMessage::default_async(cmd).await)
+        }
     }
 }
+
+/*
+impl Default for NetworkMessages {
+    fn default() -> Self {
+        NetworkMessages::Version(VersionMessage::new_default_message().await)
+    }
+}
+*/

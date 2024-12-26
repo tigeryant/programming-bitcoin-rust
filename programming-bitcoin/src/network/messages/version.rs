@@ -21,7 +21,7 @@ pub struct VersionMessage {
 }
 
 impl VersionMessage {
-    // take version as a u32, convert to [u8; 4]
+    // Decide how to remove some of these args - builder pattern?
     pub fn new(
         version: u32,
         services: [u8; 8],
@@ -49,7 +49,6 @@ impl VersionMessage {
                 .as_secs()
                 .to_le_bytes(),
         };
-        dbg!(u64::from_le_bytes(timestamp));
 
         let receiver_port: [u8; 2] = receiver_port.to_be_bytes();
 
@@ -80,7 +79,7 @@ impl VersionMessage {
         }
     }
 
-    pub fn new_default_message() -> Self {
+    pub async fn new_default_message() -> Self {
         let version: u32 = 70015;
         let services: [u8; 8] = hex::decode("0000000000000000").unwrap().try_into().unwrap();
         let timestamp: Option<u64> = Some(
@@ -103,8 +102,7 @@ impl VersionMessage {
         let sender_port: u16 = 18333; // local port
         let nonce: Option<u64> = Some(rand::random::<u64>());
         let user_agent: &str = "/programmingblockchain:0.1/";
-        let latest_block: u32 = get_block_tip().unwrap(); 
-        // let latest_block: u32 = 3577725; // latest block - use API instead of hardcoding
+        let latest_block: u32 = get_block_tip().await.unwrap(); 
         let relay: bool = false;
     
         VersionMessage::new(
@@ -198,9 +196,7 @@ impl NetworkMessage for VersionMessage {
         let mut nonce = [0u8; 8];
         reader.read_exact(&mut nonce)?;
 
-        // read and discard the varint
-        // can we discard this value?
-        let user_agent_length = read_varint(reader).unwrap();
+        let _user_agent_length = read_varint(reader).unwrap();
 
         let mut user_agent = vec![];
         reader.read_exact(&mut user_agent)?;
@@ -230,5 +226,9 @@ impl NetworkMessage for VersionMessage {
             latest_block,
             relay
         })
+    }
+
+    async fn default_async(_: &str) -> Self {
+        Self::new_default_message().await
     }
 }

@@ -32,6 +32,10 @@ impl NetworkMessage for VerAckMessage {
             command
         })
     }
+
+    async fn default_async(_: &str) -> Self {
+        Self::new()
+    }
 }
 
 impl Default for VerAckMessage {

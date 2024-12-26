@@ -1,11 +1,12 @@
 use std::io::Cursor;
 
-use programming_bitcoin::network::network_envelope::NetworkEnvelope;
 use programming_bitcoin::network::handshake::handshake;
+use programming_bitcoin::network::network_envelope::NetworkEnvelope;
+// use programming_bitcoin::network::handshake::handshake;
 use programming_bitcoin::network::network_envelope::{TESTNET_NETWORK_MAGIC, MAINNET_NETWORK_MAGIC};
 use programming_bitcoin::network::messages::version::VersionMessage;
 use programming_bitcoin::network::network_message::NetworkMessage;
-// use programming_bitcoin::network::node::Node;
+use programming_bitcoin::network::node::Node;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 
@@ -103,25 +104,23 @@ fn test_serialize_version_message() {
     dbg!(hex::encode(version_message.serialize()));
 }
 
-#[test]
-#[ignore]
-fn test_handshake() {
+#[tokio::test]
+async fn test_handshake() {
     let host: &str = "192.168.2.4"; // node ip
     let port: u32 = 18333; // default testnet port
 
     // Create and serialize a version message
-    let version = VersionMessage::new_default_message();
+    let version = VersionMessage::new_default_message().await;
     let serialized_version = version.serialize();
     dbg!(hex::encode(serialized_version));
     let network_envelope = NetworkEnvelope::new("version", version.serialize(), true);
 
-    handshake(host, port, network_envelope).unwrap();
+    handshake(host, port, network_envelope).await.unwrap();
 }
 
-/*
-#[test]
-fn test_node_handshake() {
-    Node::handshake();
-    // assert!(Node::handshake().await.is_ok());
+#[tokio::test]
+async fn test_node_handshake() {
+    let host = "192.168.2.4";
+    let port = 18333;
+    assert!(Node::handshake(host, port).await.is_ok());
 }
- */
