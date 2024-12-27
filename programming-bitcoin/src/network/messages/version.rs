@@ -196,7 +196,7 @@ impl NetworkMessage for VersionMessage {
         let mut nonce = [0u8; 8];
         reader.read_exact(&mut nonce)?;
 
-        let _user_agent_length = read_varint(reader).unwrap();
+        let _user_agent_length = read_varint(reader)?;
 
         let mut user_agent = vec![];
         reader.read_exact(&mut user_agent)?;

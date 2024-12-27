@@ -1,8 +1,8 @@
 use crate::{
     network::{get_block_tip::get_block_tip, network_message::NetworkMessage},
-    utils::varint::encode_varint,
+    utils::varint::{encode_varint, read_varint},
 };
-use std::io::{Cursor, Error};
+use std::io::{Cursor, Read, Error};
 
 pub struct GetHeadersMessage {
     pub command: String,
@@ -48,8 +48,30 @@ impl NetworkMessage for GetHeadersMessage {
         result
     }
 
-    fn parse(&self, _: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
-        todo!()
+    fn parse(&self, reader: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
+        let command = String::from("getheaders");
+
+        let mut version = [0u8; 4];
+        reader.read_exact(&mut version)?;
+        let version = u32::from_le_bytes(version);
+
+        let num_hashes = read_varint(reader)?;
+
+        let mut start_block = [0u8; 4];
+        reader.read_exact(&mut start_block)?;
+        let start_block = u32::from_le_bytes(start_block);
+
+        let mut end_block = [0u8; 4];
+        reader.read_exact(&mut end_block)?;
+        let end_block = u32::from_le_bytes(end_block);
+
+        Ok(Self {
+            command,
+            version,
+            num_hashes,
+            start_block,
+            end_block,
+        })
     }
 
     async fn default_async(_: &str) -> Result<Self, Error> {
