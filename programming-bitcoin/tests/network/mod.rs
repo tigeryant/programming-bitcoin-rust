@@ -199,5 +199,12 @@ async fn test_get_headers() {
     let getheaders = GetHeadersMessage::new(70015, 1, tip_hash, Some(GENESIS_BLOCK_HASH.to_vec()));
     node.send(getheaders).await.unwrap();
 
-    let _: NetworkMessages = node.listen().await.unwrap();
+    let mut headers_received = false;
+
+    while !(headers_received) {
+        let received_message: NetworkMessages = node.listen().await.unwrap();
+
+        if let NetworkMessages::Headers(_) = received_message { headers_received = true }
+    }
+    assert!(headers_received);
 }

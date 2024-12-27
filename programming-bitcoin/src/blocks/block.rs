@@ -7,6 +7,7 @@ use crate::utils::hash256::hash256;
 
 use super::utils::bits_to_target;
 
+#[derive(Clone)]
 pub struct Block { // all these fields are stored as little endian
     pub version: [u8; 4],
     pub prev_block: [u8; 32],

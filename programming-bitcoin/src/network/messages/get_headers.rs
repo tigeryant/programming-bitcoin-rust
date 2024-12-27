@@ -4,6 +4,7 @@ use crate::{
 };
 use std::io::{Cursor, Read, Error};
 
+#[derive(Clone)]
 pub struct GetHeadersMessage {
     pub command: String,
     pub version: u32,

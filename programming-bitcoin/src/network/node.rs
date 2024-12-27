@@ -87,7 +87,7 @@ impl Node {
             // Handle automatic protocol responses
             // Returns the parsed message if it's version or verack, responds to ping
             match command.as_str() {
-                "version" | "verack" => {
+                "version" | "verack" | "headers" => {
                     return Ok(T::parse(
                         // rewrite this so it's readable
                         &T::default_async(command.as_str()).await.unwrap(),
@@ -98,7 +98,7 @@ impl Node {
                 "ping" => {
                     self.send(PongMessage::new(envelope.payload)).await?;
                 }
-                _ => continue, // Message unrelated to handshake, keep waiting
+                _ => continue, // Message unrelated, keep waiting
             }
         }
     }

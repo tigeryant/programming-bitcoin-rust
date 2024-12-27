@@ -4,6 +4,7 @@ pub mod messages {
     pub mod verack;
     pub mod pong;
     pub mod get_headers;
+    pub mod headers;
 }
 pub mod node;
 pub mod network_message;
