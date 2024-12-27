@@ -1,11 +1,13 @@
 use std::io::Cursor;
 
+use programming_bitcoin::network::get_tip_hash::get_tip_hash;
+use programming_bitcoin::network::messages::get_headers::GetHeadersMessage;
 use programming_bitcoin::network::network_envelope::NetworkEnvelope;
 use programming_bitcoin::network::messages::version::VersionMessage;
 use programming_bitcoin::network::network_envelope::{
     MAINNET_NETWORK_MAGIC, TESTNET_NETWORK_MAGIC,
 };
-use programming_bitcoin::network::network_message::NetworkMessage;
+use programming_bitcoin::network::network_message::{NetworkMessage, NetworkMessages};
 use programming_bitcoin::network::node::Node;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -13,6 +15,13 @@ pub const PI_TESTNET_NODE_IP: &str = "192.168.2.4";
 pub const DEFAULT_TESTNET_PORT: u32 = 18333;
 
 pub const PUBLIC_TESTNET_NODE_IP: &str = "89.117.19.191";
+
+pub static GENESIS_BLOCK_HASH: [u8; 32] = [
+    0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72,
+    0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f,
+    0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c,
+    0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00
+];
 
 #[test]
 fn test_new_network_message() {
@@ -165,7 +174,30 @@ fn test_serialize_version_message() {
 
 #[tokio::test]
 async fn test_node_handshake() {
-    let host = PI_TESTNET_NODE_IP;
+    // let host = PI_TESTNET_NODE_IP;
+    let host = PUBLIC_TESTNET_NODE_IP;
     let port = DEFAULT_TESTNET_PORT;
-    assert!(Node::handshake(host, port).await.is_ok());
+    let testnet = true;
+    let logging = true;
+    let mut node = Node::new(host, port, testnet, logging).await.unwrap();
+
+    assert!(Node::handshake(&mut node).await.is_ok());
+}
+
+#[tokio::test]
+async fn test_get_headers() {
+    // let host = PI_TESTNET_NODE_IP;
+    let host = PUBLIC_TESTNET_NODE_IP;
+    let port = DEFAULT_TESTNET_PORT;
+    let testnet = true;
+    let logging = true;
+    let mut node = Node::new(host, port, testnet, logging).await.unwrap();
+
+    node.handshake().await.unwrap();
+
+    let tip_hash = get_tip_hash().await.unwrap();
+    let getheaders = GetHeadersMessage::new(70015, 1, tip_hash, Some(GENESIS_BLOCK_HASH.to_vec()));
+    node.send(getheaders).await.unwrap();
+
+    let _: NetworkMessages = node.listen().await.unwrap();
 }

@@ -43,12 +43,11 @@ impl Node {
         let envelope = NetworkEnvelope::new(command, message.serialize(), self.testnet);
 
         if self.logging {
-            println!("Sending {} message\n{}", command, envelope);
+            println!("Sending {} message:\n{}", command, envelope);
         }
 
         // Send the serialized message
         self.stream.write_all(&envelope.serialize()).await?;
-        println!("{} message sent", command);
 
         Ok(())
     }
@@ -74,9 +73,8 @@ impl Node {
         NetworkEnvelope::parse(&mut reader)
     }
 
-    pub async fn wait_for<T: NetworkMessage>(
+    pub async fn listen<T: NetworkMessage>(
         &mut self,
-        message_types: Vec<T>,
     ) -> Result<T, Box<dyn std::error::Error>> {
         loop {
             let envelope = self.read().await?;
@@ -87,63 +85,44 @@ impl Node {
             println!("Received {} message:\n{}", command, envelope);
 
             // Handle automatic protocol responses
+            // Returns the parsed message if it's version or verack, responds to ping
             match command.as_str() {
                 "version" | "verack" => {
                     return Ok(T::parse(
+                        // rewrite this so it's readable
                         &T::default_async(command.as_str()).await.unwrap(),
                         &mut Cursor::new(envelope.payload),
                     )
                     .unwrap());
                 }
                 "ping" => {
-                    println!("ping received (wait_for). Sending pong");
                     self.send(PongMessage::new(envelope.payload)).await?;
                 }
-                cmd if message_types.iter().any(|m| m.command() == cmd) => {
-                    println!("Unrecognised message received (wait_for)");
-                    return Ok(T::parse(
-                        &T::default_async(cmd).await.unwrap(),
-                        &mut Cursor::new(envelope.payload),
-                    )
-                    .unwrap());
-                }
-                _ => continue, // Unknown message, keep waiting
+                _ => continue, // Message unrelated to handshake, keep waiting
             }
         }
     }
 
-    pub async fn handshake(host: &str, port: u32) -> Result<(), Error> {
-        let testnet = true;
-        let logging = true;
-
-        let mut node = Self::new(host, port, testnet, logging).await.unwrap();
-
+    pub async fn handshake(&mut self) -> Result<(), Error> {
         let version = VersionMessage::new_default_message().await;
 
-        let verack = VerAckMessage::new();
-
-        node.send(version.clone()).await.unwrap();
+        self.send(version).await.unwrap();
 
         let mut verack_received = false;
 
         let mut version_received = false;
 
-        let message_types: Vec<NetworkMessages> = vec![
-            NetworkMessages::Version(version),
-            NetworkMessages::VerAck(verack),
-        ];
-
         while !(verack_received && version_received) {
-            let message = node.wait_for(message_types.clone()).await.unwrap();
+            let received_message = self.listen().await.unwrap();
 
-            match message {
+            match received_message {
                 NetworkMessages::VerAck(_) => {
-                    println!("Verack received. Sending verack\nHANDSHAKE COMPLETE");
-                    let _ = node.send(VerAckMessage::new()).await;
+                    self.send(VerAckMessage::new()).await.unwrap();
+                    println!("HANDSHAKE COMPLETE");
                     verack_received = true;
                 }
                 NetworkMessages::Version(_) => {
-                    println!("Version received. Waiting for verack...");
+                    println!("Waiting for verack...");
                     version_received = true;
                 }
                 _ => (),

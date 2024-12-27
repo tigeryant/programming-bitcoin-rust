@@ -96,14 +96,15 @@ impl fmt::Display for NetworkEnvelope {
             _ => "invalid magic".to_string()
         };
 
-        let payload = match self.payload.len() {
-            0 => "<no payload>",
-            _ => &hex::encode(&self.payload)
+        let payload: String = match self.payload.len() {
+            0 => String::from("<no payload>"),
+            length if self.payload.len() > 512 => format!("<payload of length: {} bytes>", length),
+            _ => hex::encode(&self.payload)
         };
 
-        write!(f, "Magic: {}\nCommand: {}\nPayload: {}", 
-            magic,
+        write!(f, "{{\n\tCommand: {}\n\tMagic: {}\n\tPayload: {}\n}}", 
             command_str,
+            magic,
             payload,
         )
     }

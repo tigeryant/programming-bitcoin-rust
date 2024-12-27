@@ -232,3 +232,9 @@ impl NetworkMessage for VersionMessage {
         Ok(Self::new_default_message().await)
     }
 }
+
+// impl Default for VersionMessage {
+//     fn default() -> Self {
+
+//     }
+// }

@@ -1,5 +1,5 @@
 use crate::{
-    network::{get_block_tip::get_block_tip, network_message::NetworkMessage},
+    network::{get_tip_hash::get_tip_hash, network_message::NetworkMessage},
     utils::varint::{encode_varint, read_varint},
 };
 use std::io::{Cursor, Read, Error};
@@ -8,15 +8,16 @@ pub struct GetHeadersMessage {
     pub command: String,
     pub version: u32,
     pub num_hashes: u64,
-    pub start_block: u32,
-    pub end_block: u32,
+    pub start_block: Vec<u8>,
+    pub end_block: Vec<u8>,
 }
 
 impl GetHeadersMessage {
-    pub fn new(version: u32, num_hashes: u64, start_block: u32, end_block: Option<u32>) -> Self {
+    // start and end block given in little endian
+    pub fn new(version: u32, num_hashes: u64, start_block: Vec<u8>, end_block: Option<Vec<u8>>) -> Self {
         let command = String::from("getheaders");
 
-        let end_block = end_block.unwrap_or(0);
+        let end_block = end_block.unwrap_or(vec![0; 32]);
 
         Self {
             command,
@@ -41,9 +42,9 @@ impl NetworkMessage for GetHeadersMessage {
 
         result.extend_from_slice(&encode_varint(self.num_hashes));
 
-        result.extend_from_slice(&self.start_block.to_le_bytes());
+        result.extend_from_slice(&self.start_block);
 
-        result.extend_from_slice(&self.end_block.to_le_bytes());
+        result.extend_from_slice(&self.end_block);
 
         result
     }
@@ -57,13 +58,11 @@ impl NetworkMessage for GetHeadersMessage {
 
         let num_hashes = read_varint(reader)?;
 
-        let mut start_block = [0u8; 4];
+        let mut start_block = vec![];
         reader.read_exact(&mut start_block)?;
-        let start_block = u32::from_le_bytes(start_block);
 
-        let mut end_block = [0u8; 4];
+        let mut end_block = vec![];
         reader.read_exact(&mut end_block)?;
-        let end_block = u32::from_le_bytes(end_block);
 
         Ok(Self {
             command,
@@ -75,6 +74,6 @@ impl NetworkMessage for GetHeadersMessage {
     }
 
     async fn default_async(_: &str) -> Result<Self, Error> {
-        Ok(Self::new(70015, 1, get_block_tip().await.unwrap(), None))
+        Ok(Self::new(70015, 1, get_tip_hash().await.unwrap(), None))
     }
 }

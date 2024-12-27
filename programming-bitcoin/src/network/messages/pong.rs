@@ -44,10 +44,10 @@ impl NetworkMessage for PongMessage {
 
     // needs a nonce to be able to create a PongMessage
     // Use a dummy nonce for now
-    async fn default_async(cmd: &str) -> Result<Self, Error> {
+    async fn default_async(_: &str) -> Result<Self, Error> {
         let nonce = rand::random::<[u8; 8]>();
         Ok(Self {
-            command: String::from(cmd),
+            command: String::from("pong"),
             nonce
         })
     }
