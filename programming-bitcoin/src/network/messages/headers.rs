@@ -1,7 +1,7 @@
 use crate::{
     blocks::block::Block, network::network_message::NetworkMessage, utils::varint::{encode_varint, read_varint}
 };
-use std::io::{Cursor, Read, Error};
+use std::io::{Cursor, Error};
 
 #[derive(Clone)]
 pub struct HeadersMessage {

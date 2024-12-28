@@ -66,3 +66,19 @@ pub fn calculate_new_bits(first_block: Block, last_block: Block) -> [u8; 4] {
 
     target_to_bits(new_target)
 }
+
+pub fn calculate_new_bits_from_previous(previous_bits: [u8; 4], mut time_differential: u32) -> [u8; 4] {
+    // Clamp time differential between 1/4 and 4 weeks
+    if time_differential > TWO_WEEKS * 4 {
+        time_differential = TWO_WEEKS * 4;
+    } else if time_differential < TWO_WEEKS / 4 {
+        time_differential = TWO_WEEKS / 4;
+    }
+
+    // Convert previous bits to target and calculate new target
+    let previous_target = bits_to_target(previous_bits);
+    let new_target = previous_target * U256::from(time_differential) / U256::from(TWO_WEEKS);
+
+    // Convert new target back to bits format
+    target_to_bits(new_target)
+}

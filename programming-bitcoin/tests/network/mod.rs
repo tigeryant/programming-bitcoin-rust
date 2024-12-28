@@ -1,7 +1,10 @@
 use std::io::Cursor;
 
+use programming_bitcoin::blocks::block::Block;
+// use programming_bitcoin::blocks::utils::calculate_new_bits_from_previous;
 use programming_bitcoin::network::get_tip_hash::get_tip_hash;
 use programming_bitcoin::network::messages::get_headers::GetHeadersMessage;
+use programming_bitcoin::network::messages::headers::HeadersMessage;
 use programming_bitcoin::network::network_envelope::NetworkEnvelope;
 use programming_bitcoin::network::messages::version::VersionMessage;
 use programming_bitcoin::network::network_envelope::{
@@ -16,12 +19,28 @@ pub const DEFAULT_TESTNET_PORT: u32 = 18333;
 
 pub const PUBLIC_TESTNET_NODE_IP: &str = "89.117.19.191";
 
-pub static GENESIS_BLOCK_HASH: [u8; 32] = [
-    0x6f, 0xe2, 0x8c, 0x0a, 0xb6, 0xf1, 0xb3, 0x72,
-    0xc1, 0xa6, 0xa2, 0x46, 0xae, 0x63, 0xf7, 0x4f,
-    0x93, 0x1e, 0x83, 0x65, 0xe1, 0x5a, 0x08, 0x9c,
-    0x68, 0xd6, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00
+pub static TESTNET_GENESIS_BLOCK_HASH: [u8; 32] = [
+    0x43, 0x49, 0x7f, 0xd7, 0xf8, 0x26, 0x95, 0x71,
+    0x08, 0xf4, 0xa3, 0x0f, 0xd9, 0xce, 0xc3, 0xae,
+    0xba, 0x79, 0x97, 0x20, 0x84, 0x9e, 0x0e, 0xad,
+    0x01, 0xea, 0x33, 0x09, 0x00, 0x00, 0x00, 0x00
 ];
+
+pub static TESTNET_GENESIS_RAW_HEADER: [u8; 80] = [
+    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x3b, 0xa3, 0xed, 0xfd,
+    0x7a, 0x7b, 0x12, 0xb2, 0x7a, 0xc7, 0x2c, 0x3e,
+    0x67, 0x76, 0x8f, 0x61, 0x7f, 0xc8, 0x1b, 0xc3,
+    0x88, 0x8a, 0x51, 0x32, 0x3a, 0x9f, 0xb8, 0xaa,
+    0x4b, 0x1e, 0x5e, 0x4a, 0xda, 0xe5, 0x49, 0x4d,
+    0xff, 0xff, 0x00, 0x1d, 0x1a, 0xa4, 0xae, 0x18
+];
+
+
+pub static LOWEST_BITS: [u8; 4] = [0xff, 0xff, 0x00, 0x1d];
 
 #[test]
 fn test_new_network_message() {
@@ -196,7 +215,7 @@ async fn test_get_headers() {
     node.handshake().await.unwrap();
 
     let tip_hash = get_tip_hash().await.unwrap();
-    let getheaders = GetHeadersMessage::new(70015, 1, tip_hash, Some(GENESIS_BLOCK_HASH.to_vec()));
+    let getheaders = GetHeadersMessage::new(70015, 1, tip_hash, Some(TESTNET_GENESIS_BLOCK_HASH.to_vec()));
     node.send(getheaders).await.unwrap();
 
     let mut headers_received = false;
@@ -207,4 +226,71 @@ async fn test_get_headers() {
         if let NetworkMessages::Headers(_) = received_message { headers_received = true }
     }
     assert!(headers_received);
+}
+
+#[tokio::test]
+async fn get_validate_headers() {
+    let host = PUBLIC_TESTNET_NODE_IP;
+    let port = DEFAULT_TESTNET_PORT;
+    let testnet = true;
+    let logging = true;
+    let mut node = Node::new(host, port, testnet, logging).await.unwrap();
+
+    let mut stream: Cursor<Vec<u8>> =  Cursor::new(TESTNET_GENESIS_RAW_HEADER.to_vec());
+    let mut previous = Block::parse(&mut stream).unwrap();   
+    // these are for the difficulty checking (mainnet)
+    // let mut first_epoch_timestamp = previous.timestamp;
+    // let mut expected_bits = LOWEST_BITS;
+
+    let mut count: u32 = 1;
+
+    node.handshake().await.unwrap();
+
+    for i in 0..19 {
+        let previous_hash = previous.hash().into_iter().rev().collect::<Vec<u8>>();
+        let getheaders = GetHeadersMessage::new(70015, 1, previous_hash, None);
+
+        node.send(getheaders).await.unwrap();
+
+        let mut headers_received = false;
+
+        let mut received_message: NetworkMessages;
+        let mut headers = HeadersMessage::default_async("headers").await.unwrap();
+
+        while !(headers_received) {
+            received_message = node.listen().await.unwrap();
+    
+            if let NetworkMessages::Headers(header_message) = received_message { 
+                headers_received = true;
+                headers = header_message;
+            }
+        }
+
+        let blocks = headers.blocks;
+
+        for header in blocks {
+            dbg!(hex::encode(header.hash()));
+            if !header.check_pow() {
+                panic!("Invalid PoW at block batch {i}");
+            }
+            let previous_hash = previous.hash().into_iter().rev().collect::<Vec<u8>>();
+            if header.prev_block.to_vec() != previous_hash {
+                panic!("Discontinuous block at headers batch {i}")
+            }
+            // THESE WILL NOT WORK FOR TESTNET AS THE DIFFICULTY ALGORITHM IS DIFFERENT
+            // Reimplement test for mainnet or update the difficulty checking algorithm
+
+            // if count % 2016 == 0 {
+            //     let time_differential = u32::from_le_bytes(previous.timestamp) - u32::from_le_bytes(first_epoch_timestamp);
+            //     expected_bits = calculate_new_bits_from_previous(previous.bits, time_differential);
+            //     dbg!(hex::encode(expected_bits));
+            //     first_epoch_timestamp = header.timestamp;
+            // }
+            // if header.bits != expected_bits {
+            //     panic!("Bad bits at headers batch {i}")
+            // }
+            previous = header;
+            count += 1;
+        }
+    }
 }
