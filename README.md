@@ -11,7 +11,7 @@ This repository contains solutions to the exercises in the [Programming Bitcoin]
 - [x] Chapter 7: Transaction Creation and Validation
 - [x] Chapter 8: Pay to Script Hash
 - [x] Chapter 9: Blocks
-- [ ] Chapter 10: Networking
+- [x] Chapter 10: Networking
 - [ ] Chapter 11: Simplified Payment Verification
 - [ ] Chapter 12: Bloom Filters
 - [ ] Chapter 13: Segwit
