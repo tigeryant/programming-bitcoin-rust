@@ -5,3 +5,14 @@ pub fn merkle_parent(hash_0: Vec<u8>, hash_1: Vec<u8>) -> Vec<u8> {
     combined.extend_from_slice(&hash_1);
     hash256(&combined)
 }
+
+pub fn merkle_parent_level(mut hashes: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
+    if hashes.len() % 2 == 1 {
+        hashes.push(hashes[hashes.len() - 1].clone());
+    }
+
+    (0..hashes.len())
+        .step_by(2)
+        .map(|i| merkle_parent(hashes[i].clone(), hashes[i + 1].clone()))
+        .collect::<Vec<Vec<u8>>>()
+}
