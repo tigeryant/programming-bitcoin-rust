@@ -242,7 +242,7 @@ async fn get_validate_headers() {
     // let mut first_epoch_timestamp = previous.timestamp;
     // let mut expected_bits = LOWEST_BITS;
 
-    let mut count: u32 = 1;
+    // let mut count: u32 = 1;
 
     node.handshake().await.unwrap();
 
@@ -290,7 +290,7 @@ async fn get_validate_headers() {
             //     panic!("Bad bits at headers batch {i}")
             // }
             previous = header;
-            count += 1;
+            // count += 1;
         }
     }
 }
