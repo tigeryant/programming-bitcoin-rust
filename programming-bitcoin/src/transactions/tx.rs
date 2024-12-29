@@ -229,7 +229,6 @@ impl Tx {
             .collect();
 
         // Parse the witness data for each input
-        // change this to use map
         tx_ins = tx_ins
             .into_iter()
             .map(|input| {
@@ -330,16 +329,44 @@ impl Tx {
         let input: &TxInput = &self.tx_ins[index];
         let script_pubkey = input.script_pubkey(self.testnet);
         // z calculated differently for a segwit tx
-        // later we need to deal with p2sh-p2wphk (the wrapped version)
         let z: Vec<u8>;
         let witness;
         // could refactor to a match statement
-        if script_pubkey.is_p2wpkh() {
+        if script_pubkey.is_p2sh_script_pubkey() {
+            let command = input.script_sig.commands[input.script_sig.commands.len() - 1].clone();
+            let mut raw_redeem = vec![];
+            raw_redeem.extend_from_slice(&[command.len() as u8]);
+            raw_redeem.extend_from_slice(&command);
+            let mut stream: Cursor<Vec<u8>> =  Cursor::new(raw_redeem);
+            let redeem_script = Script::parse(&mut stream).unwrap();
+            if redeem_script.is_p2wpkh_script_pubkey() {
+                z = self.sig_hash_bip143(index, Some(redeem_script), None);
+                witness = input.clone().get_witness();
+            } else if redeem_script.is_p2wsh_script_pubkey() {
+                let input_witness = input.witness.clone().unwrap();
+                let command = &input_witness[input_witness.len() - 1];
+                let mut raw_witness = encode_varint(command.len() as u64);
+                raw_witness.extend_from_slice(command);
+                let mut stream: Cursor<Vec<u8>> =  Cursor::new(raw_witness);
+                let witness_script = Script::parse(&mut stream).unwrap();
+                z = self.sig_hash_bip143(index, None, Some(witness_script));
+                witness = Some(input_witness);
+            } else {
+                z = self.sig_hash(&sig_hash_type, index,  true);
+                witness = None;
+            }
+        } else if script_pubkey.is_p2wpkh_script_pubkey() {
             z = self.sig_hash_bip143(index, None, None);
             witness = input.clone().get_witness();
-        } else if script_pubkey.is_p2sh() {
-            z = self.sig_hash(&sig_hash_type, index,  true);
-            witness = None;
+        } else if script_pubkey.is_p2wsh_script_pubkey() {
+                let input_witness = input.witness.clone().unwrap();
+                let command = &input_witness[input_witness.len() - 1];
+                let mut raw_witness = encode_varint(command.len() as u64);
+                raw_witness.extend_from_slice(command);
+                let mut stream: Cursor<Vec<u8>> =  Cursor::new(raw_witness);
+                let witness_script = Script::parse(&mut stream).unwrap();
+                z = self.sig_hash_bip143(index, None, Some(witness_script));
+                witness = Some(input_witness);
         } else { // legacy tx
             z = self.sig_hash(&sig_hash_type, index, false);
             let z_string = hex::encode(&z);

@@ -4,6 +4,8 @@ use std::io::{ Cursor, Read, Error };
 use crate::utils::varint::{encode_varint, read_varint};
 use crate::script::op::{self, create_op_code_names, encode_num, OpFunction};
 
+use sha2::{Sha256, Digest};
+
 
 #[derive(Clone, Debug)]
 pub struct Script {
@@ -179,6 +181,24 @@ impl Script {
                     commands.extend(Script::p2pkh_script(h160).get_commands());
                 }
 
+                // Check for P2WSH
+                if stack.len() == 2 && stack[0] == vec![] && stack[1].len() == 32 {
+                    let s256 = stack.pop().unwrap();
+                    stack.pop();
+                    let witness = witness.clone().unwrap();
+                    commands.extend_from_slice(&witness[..witness.len() - 1]);
+                    let witness_script = &witness[witness.len() - 1];
+                    let witness_hash = Sha256::digest(witness_script).to_vec();
+                    if s256 != witness_hash {
+                        println!("Bad SHA256.\n{}\n{}", hex::encode(s256), hex::encode(witness_hash));
+                        return false;
+                    }
+                    let mut stream = encode_varint(witness_script.len() as u64);
+                    stream.extend_from_slice(witness_script);
+                    let mut stream = Cursor::new(stream);
+                    let witness_script_commands = Script::parse(&mut stream).unwrap().commands;
+                    commands.extend_from_slice(&witness_script_commands);
+                }
             }
         }
         if stack.is_empty() {
@@ -204,11 +224,17 @@ impl Script {
         Self::new(vec![vec![0x00], h160])
     }
 
+    /// Takes a hash256 and returns the p2wsh script_pubkey
+    pub fn p2wsh_script(h256: Vec<u8>) -> Self {
+        Self::new(vec![vec![0x00], h256])
+    }
+
     pub fn get_commands(self) -> Vec<Vec<u8>> {
         self.commands
     }
 
-    pub fn is_p2wpkh(&self) -> bool { // This is for script_pubkey
+    pub fn is_p2wpkh_script_pubkey(&self) -> bool {
+        // OP_0 and a 20 byte hash
         let length_2 = self.commands.len() == 2;
         let first_byte_zero = self.commands[0] == vec![0x00];
         let second_element_data = self.commands[1].len() > 1;
@@ -217,15 +243,27 @@ impl Script {
         length_2 && first_byte_zero && second_element_data && data_20_long
     }
 
-    pub fn is_p2sh(&self) -> bool { // This is for script_pubkey
+    pub fn is_p2wsh_script_pubkey(&self) -> bool {
+        // OP_0 and a 32 byte (SHA256) hash
+        let length_2 = self.commands.len() == 2;
+        let first_byte_zero = self.commands[0] == vec![0x00];
+        let second_element_data = self.commands[1].len() > 1;
+        let data_32_long = self.commands[1].len() == 32;
+
+        length_2 && first_byte_zero && second_element_data && data_32_long
+    }
+
+    pub fn is_p2sh_script_pubkey(&self) -> bool {
+        // OP_HASH160, 20 byte hash, OP_EQUAL
         self.commands[0][0] == 0xa9 && // OP_HASH160
-        self.commands[1].len() > 1 && // redeem script is a data element
-        self.commands[1].len() == 20 && // redeem script is 20 bytes long
+        self.commands[1].len() > 1 && // hash is a data element
+        self.commands[1].len() == 20 && // hash is 20 bytes long
         self.commands[2][0] == 0x87 // OP_EQUAL 
     }
 
     pub fn is_p2sh_script_sig(&self) -> bool {
         // what do we know about the lengths of these elements?
+        // OP_0, signature, pubkey, redeem script
         self.commands[0][0] == 0x00 && // OP_0
         self.commands[1].len() > 1 && // signature script is a data element
         self.commands[2].len() > 1 && // pubkey is a data element
