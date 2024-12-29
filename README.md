@@ -14,4 +14,4 @@ This repository contains solutions to the exercises in the [Programming Bitcoin]
 - [x] Chapter 10: Networking
 - [ ] Chapter 11: Simplified Payment Verification
 - [ ] Chapter 12: Bloom Filters
-- [ ] Chapter 13: Segwit
+- [x] Chapter 13: Segwit
