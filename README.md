@@ -1,5 +1,7 @@
 # programming-bitcoin-rust
-This repository contains solutions to the exercises in the [Programming Bitcoin](https://www.amazon.com/Programming-Bitcoin-Learn-Program-Scratch/dp/1492031496) book, by Jimmy Song. The book shows how to build a Bitcoin library from scratch, starting with fundamental cryptographic primitives, and then implementing Bitcoin-specific functionality like transactions, script and blocks. The exercises in the book are written in Python, so the code has been ported to Rust with the equivalent functionality.
+This repository is a Bitcoin utility library written in Rust, inspired by the exercises in [Programming Bitcoin](https://www.amazon.com/Programming-Bitcoin-Learn-Program-Scratch/dp/1492031496) by Jimmy Song. The book teaches how to build a Bitcoin library from the ground up, starting with foundational cryptographic concepts and progressing to Bitcoin-specific features such as transactions, scripts, blocks, and networking.
+
+The exercises in the book are originally implemented in Python. This repository aims to provide an idiomatic Rust implementation, leveraging Rust’s safety and performance features while staying true to the book’s learning objectives. It is currently the most comprehensive Rust port of the library on GitHub.
 
 ## Progress Checklist
 - [x] Chapter 1: Finite Fields
@@ -15,3 +17,6 @@ This repository contains solutions to the exercises in the [Programming Bitcoin]
 - [ ] Chapter 11: Simplified Payment Verification
 - [ ] Chapter 12: Bloom Filters
 - [x] Chapter 13: Segwit
+
+## Acknowledgements
+* Jimmy Song: For writing Programming Bitcoin, the foundational inspiration for this project.
