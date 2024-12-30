@@ -404,13 +404,14 @@ impl Tx {
         result.extend_from_slice(&tx_in.get_prev_tx_id_le()); // Previous tx id in little-endian
         result.extend_from_slice(&tx_in.get_prev_index()); // 4-byte little-endian index
 
+        todo!();
         // let script_code: Vec<u8>;
         // if witness_script.is_some() {
-            // TODO implement
-            // script_code = witness_script.serialize()
+        //     TODO implement
+        //     script_code = witness_script.serialize()
         // } else if redeem_script.is_some() {
-            // TODO implement
-            // script_code = p2pkh_script(redeem_script.cmds[1]).serialize()
+        //     TODO implement
+        //     script_code = p2pkh_script(redeem_script.cmds[1]).serialize()
         // } else {
         let script_code = Script::p2pkh_script(tx_in.script_pubkey(self.testnet).get_commands()[1].clone()).serialize();
         // }

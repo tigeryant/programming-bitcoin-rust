@@ -1,5 +1,6 @@
-use programming_bitcoin::{ecc::signature::Signature, script::script::Script};
-// use std::io::Cursor;
+use std::io::Cursor;
+
+use programming_bitcoin::{ecc::signature::Signature, script::script::Script, utils::varint::encode_varint};
 
 // TODO test the parse (and serialize?) methods
 
@@ -66,3 +67,35 @@ fn evaluate_basic_script() {
     let result = combined_script.evaluate(dummy_z, None);
     assert!(result);
 }
+
+#[test]
+fn test_is_p2wsh_script_pubkey() {
+    let commands = vec![
+        vec![0x00],  // OP_0
+        vec![0; 32]  // 32-byte witness program (SHA256 hash)
+    ];
+    let script = Script::new(commands);
+    assert!(script.is_p2wsh_script_pubkey());
+}
+
+#[test]
+fn test_is_p2wpkh_script_pubkey() {
+    let commands = vec![
+        vec![0x00],  // OP_0
+        vec![0; 20]  // 20-byte pubkey hash
+    ];
+    let script = Script::new(commands);
+    assert!(script.is_p2wpkh_script_pubkey());
+}
+
+#[test]
+fn test_parse_p2wsh() {
+    let raw_witness = hex::decode("5221026ccfb8061f235cc110697c0bfb3afb99d82c886672f6b9b5393b25a434c0cbf32103befa190c0c22e2f53720b1be9476dcf11917da4665c44c9c71c3a2d28a933c352102be46dc245f58085743b1cc37c82f0d63a960efa43b5336534275fc469b49f4ac53ae").unwrap();
+    let mut witness = encode_varint(raw_witness.len() as u64);
+    witness.extend_from_slice(&raw_witness);
+    let mut stream: Cursor<Vec<u8>> =  Cursor::new(witness);
+    let witness_script = Script::parse(&mut stream).unwrap();
+    println!("{}", witness_script);
+}
+
+// fn test_p2wsh_evaluation() {}

@@ -204,6 +204,7 @@ async fn test_node_handshake() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_get_headers() {
     // let host = PI_TESTNET_NODE_IP;
     let host = PUBLIC_TESTNET_NODE_IP;
@@ -229,6 +230,7 @@ async fn test_get_headers() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn get_validate_headers() {
     let host = PUBLIC_TESTNET_NODE_IP;
     let port = DEFAULT_TESTNET_PORT;

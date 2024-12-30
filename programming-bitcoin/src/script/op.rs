@@ -63,6 +63,11 @@ fn op_2(stack: &mut Vec<Vec<u8>>) -> bool {
     true
 }
 
+fn op_3(stack: &mut Vec<Vec<u8>>) -> bool {
+    stack.push(encode_num(3));
+    true
+}
+
 fn op_6(stack: &mut Vec<Vec<u8>>) -> bool {
     stack.push(encode_num(6));
     true
@@ -266,6 +271,7 @@ pub fn create_op_code_functions() -> HashMap<u8, OpFunction> {
     let mut op_code_functions = HashMap::new();
     op_code_functions.insert(0, OpFunction::StackOp(op_0));
     op_code_functions.insert(82, OpFunction::StackOp(op_2));
+    op_code_functions.insert(83, OpFunction::StackOp(op_3));
     op_code_functions.insert(86, OpFunction::StackOp(op_6));
     op_code_functions.insert(105, OpFunction::StackOp(op_verify));
     op_code_functions.insert(118, OpFunction::StackOp(op_dup));
@@ -284,6 +290,7 @@ pub fn create_op_code_names() -> HashMap<u8, &'static str> {
     let mut op_code_names = HashMap::new();
     op_code_names.insert(0, "OP_0");
     op_code_names.insert(82, "OP_2");
+    op_code_names.insert(83, "OP_3");
     op_code_names.insert(86, "OP_6");
     // 99, 100
     op_code_names.insert(99, "OP_IF");
