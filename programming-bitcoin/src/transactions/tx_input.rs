@@ -1,21 +1,23 @@
-use std::io::{Cursor, Read};
+use std::io::{Cursor, Error, Read};
 
 use crate::{script::script::Script, transactions::tx_fetcher::TxFetcher};
 
 use super::tx::Tx;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct TxInput {
-    pub prev_tx_id: [u8; 32], // should this be prev? // this should be stored in little endian
-    pub prev_index: [u8; 4], // should this be prev?
+    pub prev_tx_id: [u8; 32], // little endian
+    pub prev_index: [u8; 4],
     pub script_sig: Script,
     pub sequence: [u8; 4],
-    pub witness: Option<Vec<Vec<u8>>>
+    pub witness: Option<Vec<Vec<u8>>>,
+    pub height: Option<u32>,
+    pub is_coinbase: bool,
 }
 
 impl TxInput {
     // takes prev_tx_id in big endian, reverses it to little endian
-    pub fn new(prev_tx_id_be: [u8; 32], prev_index: [u8; 4], script_sig: Script, sequence: [u8; 4], witness: Option<Vec<Vec<u8>>>) -> Self {
+    pub fn new(prev_tx_id_be: [u8; 32], prev_index: [u8; 4], script_sig: Script, sequence: [u8; 4], witness: Option<Vec<Vec<u8>>>, height: Option<u32>, is_coinbase: bool) -> Self {
         let mut tx_id_le = prev_tx_id_be;
         tx_id_le.reverse();
         Self {
@@ -23,31 +25,36 @@ impl TxInput {
             prev_index,
             script_sig,
             sequence,
-            witness
+            witness,
+            height,
+            is_coinbase
         }
     }
 
     // may contain a witness - None for now
-    // Add error handling - should return Result<Self, Error>
-    pub fn parse(cursor: &mut Cursor<Vec<u8>>) -> Self {
-        // read 32 bytes for prev_tx (little endian)
+    pub fn parse(cursor: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
         let mut prev_tx_id= [0u8; 32];
-        cursor.read_exact(&mut prev_tx_id).unwrap();
-        // read 4 bytes for the index (little endian)
+        cursor.read_exact(&mut prev_tx_id)?;
+
         let mut prev_index= [0u8; 4];
-        cursor.read_exact(&mut prev_index).unwrap();
-        let script_sig = Script::parse(cursor).unwrap();
-        // read 4 bytes for the sequence
+        cursor.read_exact(&mut prev_index)?;
+        
+        let (script_sig, height, is_coinbase) = Script::parse_script_sig(cursor)?;
+
         let mut sequence= [0u8; 4];
-        cursor.read_exact(&mut sequence).unwrap();
+        cursor.read_exact(&mut sequence)?;
+
         let witness: Option<Vec<Vec<u8>>> = None;
-        Self {
+
+        Ok(Self {
             prev_tx_id,
             prev_index,
             script_sig,
             sequence,
-            witness
-        }
+            witness,
+            height,
+            is_coinbase
+        })
     }
 
     /// Returns the byte serialization of the transaction input
@@ -94,7 +101,9 @@ impl TxInput {
             prev_index: self.prev_index,
             script_sig: empty_script_sig,
             sequence: self.sequence,
-            witness: self.witness.clone()
+            witness: self.witness.clone(),
+            height: self.height,
+            is_coinbase: self.is_coinbase
         }
     } 
 
@@ -116,7 +125,9 @@ impl TxInput {
             prev_index: self.prev_index,
             script_sig: replacement,
             sequence: self.sequence,
-            witness: self.witness.clone()
+            witness: self.witness.clone(),
+            height: self.height,
+            is_coinbase: self.is_coinbase
         }
     }
 
@@ -131,45 +142,56 @@ impl TxInput {
         self.prev_tx_id
     }
 
-    pub fn get_prev_index(&self) -> [u8; 4] {
-        self.prev_index
-    }
-
-    pub fn get_script_sig(&self) -> Script {
-        self.script_sig.clone()
-    }
-
     pub fn set_witness(&self, witness: Option<Vec<Vec<u8>>>) -> Self {
         Self {
-            prev_tx_id: self.prev_tx_id,
-            prev_index: self.prev_index,
-            script_sig: self.script_sig.clone(),
-            sequence: self.sequence,
-            witness
+            witness,
+            ..self.clone()
         }
     }
 
     pub fn witness_length(&self) -> u8 {
         self.witness.as_ref().map_or(0, |w| w.len() as u8)
     }
-
-    pub fn get_witness(self) -> Option<Vec<Vec<u8>>> {
-        self.witness
-    }
-
-    pub fn get_sequence(&self) -> [u8; 4] {
-        self.sequence
-    }
 }
 
 
 impl std::fmt::Display for TxInput {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "TxInput {{ \n  prev_tx_id (big endian): {}\n  prev_index: {}\n  script_sig: \n{}  sequence: {} \n}}", 
+        let witness = match &self.witness {
+            Some(w) => w.iter()
+                .map(|bytes| hex::encode(bytes))
+                .collect::<Vec<String>>()
+                .join(","),
+            None => String::from("None")
+        };
+        let height_str = match self.height {
+            Some(height) => height.to_string(),
+            None => String::from("undefined")
+        };
+        let is_coinbase_str = if self.is_coinbase { String::from("true") } else { String::from("false") };
+
+        write!(f, "TxInput {{ \n  prev_tx_id (big endian): {}\n  prev_index: {}\n  script_sig: \n{}  sequence: {}\n  witness: {}\n  height: {}\n  is_coinbase: {}\n}}", 
             self.get_prev_tx_id_be(), // the encoding is not reversing it, and it's being displayed in big endian
             u32::from_le_bytes(self.prev_index),
             self.script_sig,
-            hex::encode(self.sequence)
+            hex::encode(self.sequence),
+            witness,
+            height_str,
+            is_coinbase_str
         )
+    }
+}
+
+impl std::fmt::Debug for TxInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TxInput")
+            .field("prev_tx_id (BE)", &format!("value: {} hex: {}", self.get_prev_tx_id_be(), hex::encode(self.prev_tx_id)))
+            .field("prev_index", &format!("value: {} hex: {}", u32::from_le_bytes(self.prev_index), hex::encode(self.prev_index)))
+            .field("script_sig", &format!("value: {} hex: {}", self.script_sig, hex::encode(self.script_sig.serialize())))
+            .field("sequence", &format!("value: {} hex: {}", u32::from_le_bytes(self.sequence), hex::encode(self.sequence)))
+            .field("witness", &format!("value: {:?} hex: {}", self.witness, self.witness.as_ref().map_or("None".to_string(), |w| w.iter().map(|bytes| hex::encode(bytes)).collect::<Vec<String>>().join(","))))
+            .field("height", &self.height)
+            .field("is_coinbase", &self.is_coinbase)
+            .finish()
     }
 }

@@ -1,6 +1,6 @@
 use primitive_types::U256;
 
-use super::block::Block;
+use super::block_header::BlockHeader;
 
 pub const TWO_WEEKS: u32 = 60*60*24*14;
 
@@ -44,7 +44,7 @@ pub fn target_to_bits(target: U256) -> [u8; 4] {
     new_bits
 }
 
-pub fn calculate_new_bits(first_block: Block, last_block: Block) -> [u8; 4] {
+pub fn calculate_new_bits(first_block: BlockHeader, last_block: BlockHeader) -> [u8; 4] {
     let first_timestamp = u32::from_le_bytes(first_block.timestamp);
     let last_timestamp = u32::from_le_bytes(last_block.timestamp);
     dbg!(first_timestamp);

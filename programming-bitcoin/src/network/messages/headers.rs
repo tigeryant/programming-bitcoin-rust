@@ -1,17 +1,17 @@
 use crate::{
-    blocks::block::Block, network::network_message::NetworkMessage, utils::varint::{encode_varint, read_varint}
+    blocks::block_header::BlockHeader, network::network_message::NetworkMessage, utils::varint::{encode_varint, read_varint}
 };
 use std::io::{Cursor, Error};
 
 #[derive(Clone)]
 pub struct HeadersMessage {
     pub command: String,
-    pub blocks: Vec<Block>,
+    pub blocks: Vec<BlockHeader>,
 }
 
 impl HeadersMessage {
     // start and end block given in little endian
-    pub fn new(blocks: Vec<Block>) -> Self {
+    pub fn new(blocks: Vec<BlockHeader>) -> Self {
         let command = String::from("headers");
 
         Self {
@@ -44,9 +44,9 @@ impl NetworkMessage for HeadersMessage {
         let command = String::from("headers");
 
         let num_headers = read_varint(reader)?;
-        let blocks: Vec<Block> = (0..num_headers)
+        let blocks: Vec<BlockHeader> = (0..num_headers)
             .map(|_| {
-                let block = Block::parse(reader).unwrap();
+                let block = BlockHeader::parse(reader).unwrap();
                 let num_txs = read_varint(reader).unwrap();
                 if num_txs != 0 {
                     return Err(Error::new(std::io::ErrorKind::InvalidData, "Number of transactions must be 0 for headers message"))

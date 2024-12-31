@@ -54,7 +54,9 @@ impl TxOutput {
 
 impl fmt::Display for TxOutput {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "amount: {} satoshis", self.amount)?;
-        writeln!(f, "script_pubkey:\n{}", self.script_pubkey)
+        write!(f, "TxOutput {{ \n  amount: {} satoshis\n  script_pubkey:\n{}}}", 
+        self.amount,
+        self.script_pubkey
+    )
     }
 }

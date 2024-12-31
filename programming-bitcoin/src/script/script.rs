@@ -1,33 +1,28 @@
 use std::fmt;
-use std::io::{ Cursor, Read, Error };
+use std::io::{Cursor, Error, Read};
 
-use crate::utils::varint::{encode_varint, read_varint};
 use crate::script::op::{self, create_op_code_names, encode_num, OpFunction};
+use crate::utils::varint::{encode_varint, read_varint};
 
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
-
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Script {
-    pub commands: Vec<Vec<u8>>
+    pub commands: Vec<Vec<u8>>,
 }
 
 impl Script {
     pub fn new(commands: Vec<Vec<u8>>) -> Self {
-        Self {
-            commands
-        }
+        Self { commands }
     }
 
     pub fn new_empty_script() -> Self {
         let commands = vec![];
-        Self {
-            commands
-        }
+        Self { commands }
     }
 
     /// Parses a script from a byte vector
-    pub fn parse(reader: &mut Cursor<Vec<u8>>) -> Result<Script, Error> {
+    pub fn parse(reader: &mut Cursor<Vec<u8>>) -> Result<Self, Error> {
         let mut commands = vec![];
         let mut count = 0;
         let length = read_varint(reader)?;
@@ -36,55 +31,110 @@ impl Script {
             reader.read_exact(&mut current)?;
             count += 1;
             let current_byte = current[0];
-            if (1..=75).contains(&current_byte) { // the next n bytes are an element
+            if (1..=75).contains(&current_byte) {
+                // the next n bytes are an element
                 let n = current_byte;
                 let mut cmd = vec![0u8; n as usize];
                 reader.read_exact(&mut cmd)?;
                 commands.push(cmd);
                 count += n as u64;
-            } else if current_byte == 76 { // op_pushdata1, so the next byte tells us how many bytes to read
+            } else if current_byte == 76 {
+                // op_pushdata1, so the next byte tells us how many bytes to read
                 let data_length = read_varint(reader)?;
                 let mut cmd = vec![0u8; data_length as usize];
                 reader.read_exact(&mut cmd)?;
                 commands.push(cmd);
                 count += data_length + 1;
-            } else if current_byte == 77 { // op_pushdata2, so the next two bytes tells us how many bytes to read
+            } else if current_byte == 77 {
+                // op_pushdata2, so the next two bytes tells us how many bytes to read
                 let data_length = read_varint(reader)?;
                 let mut cmd = vec![0u8; data_length as usize];
                 reader.read_exact(&mut cmd)?;
                 commands.push(cmd);
                 count += data_length + 2;
-            } else { // it is an op_code we add to the stack
+            } else {
+                // it is an op_code we add to the stack
                 let op_code = current_byte;
                 commands.push(vec![op_code]);
             }
         }
+
         if count != length {
             return Err(Error::new(
                 std::io::ErrorKind::InvalidData,
-                "Parsing script failed",
+                "Script parsing failed: parsed length does not match expected length",
             ));
         }
+
         Ok(Self { commands })
+    }
+
+    pub fn parse_script_sig(
+        reader: &mut Cursor<Vec<u8>>,
+    ) -> Result<(Self, Option<u32>, bool), Error> {
+        let initial_position = reader.position();
+        match Self::parse(reader) {
+            Ok(script) => Ok((script, None, false)),
+            // If standard parsing fails, try BIP-34 parsing
+            Err(_) => {
+                reader.set_position(initial_position);
+                let mut commands = vec![];
+
+                let length = read_varint(reader)?;
+
+                // Height (BIP-34 requirement)
+                let position_before_varint = reader.position();
+                let height_length = read_varint(reader)?;
+                dbg!(height_length);
+                let position_after_varint = reader.position();
+                let varint_length = position_after_varint - position_before_varint;
+
+                let mut padded_bytes = [0u8; 4];
+                let mut height_bytes = vec![0u8; height_length as usize];
+                dbg!(hex::encode(&height_bytes));
+                reader.read_exact(&mut height_bytes)?;
+                let bytes_clone = height_bytes.clone();
+                padded_bytes[..height_length as usize].copy_from_slice(&bytes_clone);
+                let height = u32::from_le_bytes(padded_bytes);
+                commands.push(height_bytes);
+
+                // Read the remaining arbitrary data
+                let remaining_length = length - height_length - varint_length;
+                if remaining_length > 0 {
+                    let mut arbitrary_data = vec![0u8; remaining_length as usize];
+                    reader.read_exact(&mut arbitrary_data)?;
+                    commands.push(arbitrary_data);
+                }
+
+                let script = Self { commands };
+                let is_coinbase = true;
+                Ok((script, Some(height), is_coinbase))
+            }
+        }
     }
 
     fn raw_serialize(&self) -> Vec<u8> {
         let mut result = vec![];
         for cmd in &self.commands {
-            if cmd.len() == 1 { // must be an opcode
+            if cmd.len() == 1 {
+                // must be an opcode
                 let op_code = cmd[0];
                 result.push(op_code);
             } else {
                 let length = cmd.len();
-                if length < 76 { // encode length as a single byte
+                if length < 76 {
+                    // encode length as a single byte
                     result.push(length as u8);
-                } else if length <= 0xff { // op_pushdata1, then encode length as a byte
+                } else if length <= 0xff {
+                    // op_pushdata1, then encode length as a byte
                     result.push(76);
                     result.push(length as u8);
-                } else if length <= 520 { // op_pushdata2, then encode length as two bytes
+                } else if length <= 520 {
+                    // op_pushdata2, then encode length as two bytes
                     result.push(77);
                     result.extend_from_slice(&length.to_le_bytes()[..2]);
-                } else { // if it's longer than 520 bytes it's invalid - error
+                } else {
+                    // if it's longer than 520 bytes it's invalid - error
                     panic!("too long a cmd");
                 }
                 result.extend_from_slice(cmd);
@@ -130,7 +180,7 @@ impl Script {
                 let op_name = *names.get(&op_code).unwrap();
                 dbg!(&op_name);
                 let operations = op::create_op_code_functions();
-                let op_function = operations.get(&op_code).unwrap().clone(); 
+                let op_function = operations.get(&op_code).unwrap().clone();
                 let operation_result: bool = match op_function {
                     OpFunction::StackOp(func) => func(&mut stack),
                     OpFunction::StackSigOp(func) => func(&mut stack, z.clone()),
@@ -149,7 +199,9 @@ impl Script {
                 commands[0][0] == 0xa9 && // OP_HASH160
                 commands[1].len() > 1 && // redeem script is a data element
                 commands[1].len() == 20 && // redeem script is 20 bytes long
-                commands[2][0] == 0x87 { // OP_EQUAL
+                commands[2][0] == 0x87
+                {
+                    // OP_EQUAL
                     commands.pop();
                     let h160 = commands.pop().unwrap();
                     commands.pop();
@@ -190,7 +242,11 @@ impl Script {
                     let witness_script = &witness[witness.len() - 1];
                     let witness_hash = Sha256::digest(witness_script).to_vec();
                     if s256 != witness_hash {
-                        println!("Bad SHA256.\n{}\n{}", hex::encode(s256), hex::encode(witness_hash));
+                        println!(
+                            "Bad SHA256.\n{}\n{}",
+                            hex::encode(s256),
+                            hex::encode(witness_hash)
+                        );
                         return false;
                     }
                     let mut stream = encode_varint(witness_script.len() as u64);
@@ -202,10 +258,10 @@ impl Script {
             }
         }
         if stack.is_empty() {
-            return false
+            return false;
         }
         if stack.pop() == Some(encode_num(0)) {
-            return false
+            return false;
         }
         true
     }
@@ -233,6 +289,22 @@ impl Script {
         self.commands
     }
 
+    pub fn get_redeem_script(&self) -> Self {
+        let mut redeem_script = vec![];
+        redeem_script.extend_from_slice(&encode_varint(self.commands[3].len() as u64));
+        redeem_script.extend_from_slice(&self.commands[3]);
+        let mut stream = Cursor::new(redeem_script);
+        Self::parse(&mut stream).unwrap()
+    }
+
+    pub fn is_p2pk_script_pubkey(&self) -> bool {
+        // pubkey followed by OP_CHECKSIG
+        let first_element_data = self.commands[0].len() > 1;
+        let second_element_checksig = self.commands[1] == vec![0xac];
+
+        first_element_data && second_element_checksig
+    }
+
     pub fn is_p2wpkh_script_pubkey(&self) -> bool {
         // OP_0 and a 20 byte hash
         let length_2 = self.commands.len() == 2;
@@ -258,7 +330,7 @@ impl Script {
         self.commands[0][0] == 0xa9 && // OP_HASH160
         self.commands[1].len() > 1 && // hash is a data element
         self.commands[1].len() == 20 && // hash is 20 bytes long
-        self.commands[2][0] == 0x87 // OP_EQUAL 
+        self.commands[2][0] == 0x87 // OP_EQUAL
     }
 
     pub fn is_p2sh_script_sig(&self) -> bool {
@@ -270,34 +342,102 @@ impl Script {
         self.commands[3].len() > 1 // redeem script is a data element
     }
 
-    pub fn get_redeem_script(&self) -> Self {
-        let mut redeem_script = vec![];
-        redeem_script.extend_from_slice(&encode_varint(self.commands[3].len() as u64));
-        redeem_script.extend_from_slice(&self.commands[3]);
-        let mut stream = Cursor::new(redeem_script);
-        Self::parse(&mut stream).unwrap()
+    pub fn is_p2tr_script_pubkey(&self) -> bool {
+        // OP_1, data
+        self.commands[0][0] == 0x51 && // OP_1
+        self.commands[1].len() > 1 // data element
     }
 }
 
 impl fmt::Display for Script {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let op_code_names = create_op_code_names();
-        // Add check for script type (P2PKH, P2SH, etc) for more descriptive output
+
+        let script_type = match self {
+            _script_type if self.commands.is_empty() => String::from("empty script"),
+            _script_type if self.is_p2sh_script_pubkey() => String::from("P2SH"),
+            _script_type if self.is_p2wsh_script_pubkey() => String::from("P2WSH"),
+            _script_type if self.is_p2wpkh_script_pubkey() => String::from("P2WPKH"),
+            _script_type if self.is_p2tr_script_pubkey() => String::from("P2TR"),
+            _script_type if self.is_p2pk_script_pubkey() => String::from("P2PK"),
+            _ => String::from("unknown")
+        };
 
         // First write the script length
-        writeln!(f, "Length: {} byte(s)", self.raw_serialize().len())?;
-        writeln!(f, "Data:")?;
+        writeln!(f, "  Script type: {}", script_type)?;
+        writeln!(f, "  Length: {} byte(s)", self.raw_serialize().len())?;
+        writeln!(f, "  Data:")?;
         self.commands.iter().try_fold((), |_, cmd| {
             if cmd.len() == 1 {
-                let op_name = op_code_names.get(&cmd[0])
-                    .map_or(format!("NO OP CODE FOUND ({})", cmd[0]), |name| name.to_string());
+                let op_name = op_code_names
+                    .get(&cmd[0])
+                    .map_or(format!("NO OP CODE FOUND ({})", cmd[0]), |name| {
+                        name.to_string()
+                    });
                 writeln!(f, "\t     {} ", op_name)
             } else {
                 let mut hex_string = String::with_capacity(cmd.len() * 2);
-                cmd.iter()
-                    .for_each(|byte| hex_string.push_str(&format!("{:02x}", byte)));
-                writeln!(f, "\t     {} ", hex_string)
+                let mut ascii_string = String::with_capacity(cmd.len());
+                
+                cmd.iter().for_each(|byte| {
+                    hex_string.push_str(&format!("{:02x}", byte));
+                    // Convert byte to ASCII char if printable, otherwise use a dot
+                    ascii_string.push(if byte.is_ascii_graphic() {
+                        *byte as char
+                    } else {
+                        '.'
+                    });
+                });
+                
+                writeln!(f, "\t     {} (ASCII: {})", hex_string, ascii_string)
             }
+
         })
+    }
+}
+
+impl fmt::Debug for Script {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let op_code_names = create_op_code_names();
+
+        let script_type = match self {
+            _script_type if self.is_p2sh_script_pubkey() => String::from("P2SH"),
+            _script_type if self.is_p2wsh_script_pubkey() => String::from("P2WSH"),
+            _script_type if self.is_p2wpkh_script_pubkey() => String::from("P2WPKH"),
+            _script_type if self.is_p2tr_script_pubkey() => String::from("P2TR"),
+            _script_type if self.is_p2pk_script_pubkey() => String::from("P2PK"),
+            _ => String::from("unknown")
+        };
+        
+        writeln!(f, "Script {{")?;
+        writeln!(f, "  Script type: {}", script_type)?;
+        writeln!(f, "    Length: {} byte(s)", self.raw_serialize().len())?;
+        writeln!(f, "    Data:")?;
+        
+        self.commands.iter().try_fold((), |_, cmd| {
+            if cmd.len() == 1 {
+                let op_name = op_code_names
+                    .get(&cmd[0])
+                    .map_or(format!("NO OP CODE FOUND ({})", cmd[0]), |name| {
+                        name.to_string()
+                    });
+                writeln!(f, "        {} ", op_name)
+            } else {
+                let mut hex_string = String::with_capacity(cmd.len() * 2);
+                let mut ascii_string = String::with_capacity(cmd.len());
+                
+                cmd.iter().for_each(|byte| {
+                    hex_string.push_str(&format!("{:02x}", byte));
+                    ascii_string.push(if byte.is_ascii_graphic() {
+                        *byte as char
+                    } else {
+                        '.'
+                    });
+                });
+                
+                writeln!(f, "        {} (ASCII: {})", hex_string, ascii_string)
+            }
+        })?;
+        write!(f, "}}")
     }
 }

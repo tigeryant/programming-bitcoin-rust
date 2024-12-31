@@ -79,8 +79,6 @@ impl Tx {
         // Serialize locktime (4 bytes, little endian)
         result.extend_from_slice(&self.locktime.to_le_bytes());
 
-        // We omit the testnet field - this is not part of the serialized tx
-        
         result
     }
 
@@ -116,7 +114,7 @@ impl Tx {
                 let length = input.witness_length();
                 result.extend_from_slice(&[length]);
 
-                let witness = input.get_witness().unwrap();
+                let witness = input.witness.unwrap();
                 for item in witness {
                     if item.len() == 1 {
                         result.extend_from_slice(&item);
@@ -134,11 +132,12 @@ impl Tx {
     }
 
     pub fn parse(stream: &mut Cursor<Vec<u8>>, testnet: bool) -> Self {
-        stream.set_position(4);
+        let current_pos = stream.position();
+        stream.set_position(current_pos + 4);
         let mut marker_byte = [0u8; 1];
         stream.read_exact(&mut marker_byte).unwrap();
         let marker = marker_byte[0];
-        stream.set_position(0);
+        stream.set_position(current_pos);
         // consider using traits to use different methods here
         if marker == 0x00 { // must be a segwit tx
             Self::parse_segwit(stream, testnet)
@@ -159,7 +158,9 @@ impl Tx {
         
         let tx_ins: Vec<TxInput> = (0..input_count)
             .map(|_| {
-                TxInput::parse(stream)
+                let tx_input = TxInput::parse(stream).unwrap();
+                dbg!(&tx_input);
+                tx_input
             })
             .collect();
 
@@ -214,7 +215,7 @@ impl Tx {
         
         let mut tx_ins: Vec<TxInput> = (0..input_count)
             .map(|_| {
-                TxInput::parse(stream)
+                TxInput::parse(stream).unwrap()
             })
             .collect();
 
@@ -288,7 +289,7 @@ impl Tx {
     pub fn sig_hash(&self, sig_hash_type: &SigHashType, tx_index: usize, p2sh: bool) -> Vec<u8> {
         let inputs = &self.tx_ins;
         let original_input = inputs[tx_index].clone();
-        let original_script_sig = original_input.get_script_sig();
+        let original_script_sig = original_input.script_sig.clone();
         original_input.empty_script_sig();
         let mut redeem_script: Option<Script> = None;
         // extract the redeem script if P2SH
@@ -341,7 +342,7 @@ impl Tx {
             let redeem_script = Script::parse(&mut stream).unwrap();
             if redeem_script.is_p2wpkh_script_pubkey() {
                 z = self.sig_hash_bip143(index, Some(redeem_script), None);
-                witness = input.clone().get_witness();
+                witness = input.clone().witness;
             } else if redeem_script.is_p2wsh_script_pubkey() {
                 let input_witness = input.witness.clone().unwrap();
                 let command = &input_witness[input_witness.len() - 1];
@@ -357,7 +358,7 @@ impl Tx {
             }
         } else if script_pubkey.is_p2wpkh_script_pubkey() {
             z = self.sig_hash_bip143(index, None, None);
-            witness = input.clone().get_witness();
+            witness = input.clone().witness;
         } else if script_pubkey.is_p2wsh_script_pubkey() {
                 let input_witness = input.witness.clone().unwrap();
                 let command = &input_witness[input_witness.len() - 1];
@@ -374,7 +375,7 @@ impl Tx {
             witness = None;
         }
 
-        let script_sig = input.get_script_sig();
+        let script_sig = input.script_sig.clone();
         let combined_script = script_sig.concat(script_pubkey);
         combined_script.evaluate(z, witness)
     }
@@ -402,7 +403,7 @@ impl Tx {
         result.extend_from_slice(&self.hash_prevouts());
         result.extend_from_slice(&self.hash_sequence());
         result.extend_from_slice(&tx_in.get_prev_tx_id_le()); // Previous tx id in little-endian
-        result.extend_from_slice(&tx_in.get_prev_index()); // 4-byte little-endian index
+        result.extend_from_slice(&tx_in.prev_index); // 4-byte little-endian index
 
         todo!();
         // let script_code: Vec<u8>;
@@ -421,7 +422,7 @@ impl Tx {
         result.extend_from_slice(&tx_in.value().to_le_bytes());
 
         // Add tx_in sequence in little endian (4 bytes)
-        result.extend_from_slice(&tx_in.get_sequence());
+        result.extend_from_slice(&tx_in.sequence);
 
         // Add hash of all outputs
         result.extend_from_slice(&self.hash_outputs());
@@ -443,9 +444,9 @@ impl Tx {
         for tx_in in &self.tx_ins {
             // Add prev_tx in little endian and prev_index
             all_prevouts.extend(tx_in.get_prev_tx_id_le());
-            all_prevouts.extend(tx_in.get_prev_index());
+            all_prevouts.extend(tx_in.prev_index);
             // Add sequence in little endian
-            all_sequence.extend_from_slice(&tx_in.get_sequence());
+            all_sequence.extend_from_slice(&tx_in.sequence);
         }
         
         hash256(&all_prevouts)
@@ -455,7 +456,7 @@ impl Tx {
         let mut all_sequence = Vec::new();
         
         for tx_in in &self.tx_ins {
-            all_sequence.extend_from_slice(&tx_in.get_sequence());
+            all_sequence.extend_from_slice(&tx_in.sequence);
         }
         
         hash256(&all_sequence)
@@ -485,11 +486,13 @@ impl Tx {
         let script_sig = Script::new(vec![sig, sec]);
         let mut prev_tx_id = [0u8; 32];
         prev_tx_id.copy_from_slice(&hex::decode(unsigned_input.get_prev_tx_id_be()).unwrap());
-        let prev_index = unsigned_input.get_prev_index();
-        let sequence = unsigned_input.get_sequence();
-        let witness = unsigned_input.get_witness();
+        let prev_index = unsigned_input.prev_index;
+        let sequence = unsigned_input.sequence;
+        let witness = unsigned_input.witness;
+        let height = unsigned_input.height;
+        let is_coinbase = unsigned_input.is_coinbase;
         // return a new signed input
-        TxInput::new(prev_tx_id, prev_index, script_sig, sequence, witness)
+        TxInput::new(prev_tx_id, prev_index, script_sig, sequence, witness, height, is_coinbase)
     }
 
     pub fn sign_multiple_inputs(&self, input_signing_data: Vec<InputSigningData>) -> Vec<TxInput> {
@@ -526,11 +529,11 @@ impl fmt::Display for Tx {
         writeln!(f, "version: {}", self.version)?;
         writeln!(f, "tx_ins:")?;
         for (i, input) in self.tx_ins.iter().enumerate() {
-            writeln!(f, "\t{}: {}", i, input)?;
+            writeln!(f, "{}: {}", i, input)?;
         }
         writeln!(f, "tx_outs:")?;
         for (i, output) in self.tx_outs.iter().enumerate() {
-            writeln!(f, "\t{}: {}", i, output)?;
+            writeln!(f, "{}: {}", i, output)?;
         }
         writeln!(f, "locktime: {}", self.locktime)
     }

@@ -58,6 +58,13 @@ fn op_0(stack: &mut Vec<Vec<u8>>) -> bool {
     true
 }
 
+// OP_1 / OP_TRUE
+fn op_1(stack: &mut Vec<Vec<u8>>) -> bool {
+    stack.push(encode_num(1));
+    true
+}
+
+// OP_2
 fn op_2(stack: &mut Vec<Vec<u8>>) -> bool {
     stack.push(encode_num(2));
     true
@@ -85,6 +92,12 @@ pub fn op_verify(stack: &mut Vec<Vec<u8>>) -> bool {
     }
 
     true
+}
+
+// 106 - OP_RETURN
+// could change the op type of this - unecessary arg
+fn op_return(_: &mut Vec<Vec<u8>>) -> bool {
+    false
 }
 
 // 118 - OP_DUP
@@ -270,10 +283,12 @@ pub enum OpFunction {
 pub fn create_op_code_functions() -> HashMap<u8, OpFunction> {
     let mut op_code_functions = HashMap::new();
     op_code_functions.insert(0, OpFunction::StackOp(op_0));
+    op_code_functions.insert(81, OpFunction::StackOp(op_1));
     op_code_functions.insert(82, OpFunction::StackOp(op_2));
     op_code_functions.insert(83, OpFunction::StackOp(op_3));
     op_code_functions.insert(86, OpFunction::StackOp(op_6));
     op_code_functions.insert(105, OpFunction::StackOp(op_verify));
+    op_code_functions.insert(106, OpFunction::StackOp(op_return));
     op_code_functions.insert(118, OpFunction::StackOp(op_dup));
     op_code_functions.insert(135, OpFunction::StackOp(op_equal)); // same signature as StackHashOp
     op_code_functions.insert(136, OpFunction::StackOp(op_equalverify));
@@ -289,6 +304,7 @@ pub fn create_op_code_functions() -> HashMap<u8, OpFunction> {
 pub fn create_op_code_names() -> HashMap<u8, &'static str> {
     let mut op_code_names = HashMap::new();
     op_code_names.insert(0, "OP_0");
+    op_code_names.insert(81, "OP_1 / OP_TRUE");
     op_code_names.insert(82, "OP_2");
     op_code_names.insert(83, "OP_3");
     op_code_names.insert(86, "OP_6");
@@ -296,6 +312,7 @@ pub fn create_op_code_names() -> HashMap<u8, &'static str> {
     op_code_names.insert(99, "OP_IF");
     op_code_names.insert(100, "OP_NOTIF");
     op_code_names.insert(105, "OP_VERIFY");
+    op_code_names.insert(106, "OP_RETURN");
     // 107, 108
     op_code_names.insert(107, "OP_TOALTSTACK");
     op_code_names.insert(108, "OP_FROMALTSTACK");

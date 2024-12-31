@@ -86,8 +86,10 @@ impl Node {
 
             // Handle automatic protocol responses
             // Returns the parsed message if it's version or verack, responds to ping
+            // should really update this match branch - should not be using this branch
+            // match against a parameter of network messages instead
             match command.as_str() {
-                "version" | "verack" | "headers" => {
+                "version" | "verack" | "headers" | "block" => {
                     return Ok(T::parse(
                         // rewrite this so it's readable
                         &T::default_async(command.as_str()).await.unwrap(),

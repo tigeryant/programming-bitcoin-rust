@@ -1,8 +1,11 @@
 use std::io::Cursor;
 
-use programming_bitcoin::blocks::block::Block;
+use programming_bitcoin::blocks::block_header::BlockHeader;
 // use programming_bitcoin::blocks::utils::calculate_new_bits_from_previous;
 use programming_bitcoin::network::get_tip_hash::get_tip_hash;
+use programming_bitcoin::network::inventory::Inventory;
+use programming_bitcoin::network::messages::block::BlockMessage;
+use programming_bitcoin::network::messages::get_data::GetDataMessage;
 use programming_bitcoin::network::messages::get_headers::GetHeadersMessage;
 use programming_bitcoin::network::messages::headers::HeadersMessage;
 use programming_bitcoin::network::network_envelope::NetworkEnvelope;
@@ -193,8 +196,8 @@ fn test_serialize_version_message() {
 
 #[tokio::test]
 async fn test_node_handshake() {
-    // let host = PI_TESTNET_NODE_IP;
-    let host = PUBLIC_TESTNET_NODE_IP;
+    let host = PI_TESTNET_NODE_IP;
+    // let host = PUBLIC_TESTNET_NODE_IP;
     let port = DEFAULT_TESTNET_PORT;
     let testnet = true;
     let logging = true;
@@ -239,7 +242,7 @@ async fn get_validate_headers() {
     let mut node = Node::new(host, port, testnet, logging).await.unwrap();
 
     let mut stream: Cursor<Vec<u8>> =  Cursor::new(TESTNET_GENESIS_RAW_HEADER.to_vec());
-    let mut previous = Block::parse(&mut stream).unwrap();   
+    let mut previous = BlockHeader::parse(&mut stream).unwrap();   
     // these are for the difficulty checking (mainnet)
     // let mut first_epoch_timestamp = previous.timestamp;
     // let mut expected_bits = LOWEST_BITS;
@@ -295,4 +298,69 @@ async fn get_validate_headers() {
             // count += 1;
         }
     }
+}
+
+#[tokio::test]
+async fn test_get_data() {
+    let host = PUBLIC_TESTNET_NODE_IP;
+    // let host = PI_TESTNET_NODE_IP;
+    let port = DEFAULT_TESTNET_PORT;
+    let testnet = true;
+    let logging = true;
+    let mut node = Node::new(host, port, testnet, logging).await.unwrap();
+
+    node.handshake().await.unwrap();
+
+    /*
+    // call getheaders on a single block header hash
+    // hash of an arbitrary recent block (height 3604184)
+    let start_hash = hex::decode("0000000000000045618af6c594b1e04f9bb753c229b520cb3ca48db24cd92fa2").unwrap();
+    let start_hash = start_hash.into_iter().rev().collect::<Vec<u8>>(); // convert from big to little endian
+    // hash of an arbitrary recent block (height 3604185)
+    let end_hash = hex::decode("00000000000003bc144d301e7951351c02f7fb1dd77e4024fc80397ec5a22fce").unwrap();
+    let end_hash = end_hash.into_iter().rev().collect::<Vec<u8>>(); // convert from big to little endian
+    let getheaders = GetHeadersMessage::new(70015, 1, start_hash, Some(end_hash));
+    // call getdata for each of these headers
+    */
+
+    let block_hash = hex::decode("00000000000003bc144d301e7951351c02f7fb1dd77e4024fc80397ec5a22fce").unwrap();
+    let block_hash = block_hash.into_iter().rev().collect::<Vec<u8>>(); // convert from big to little endian
+    let block_hash: [u8; 32] = block_hash.try_into().unwrap();
+
+    // object_type
+    // 02 00 00 00 = MSG_BLOCK
+    // 02 00 00 40 = MSG_WITNESS_BLOCK
+
+    // currently using MSG_BLOCK (non witness data)
+    let inventory = Inventory::new(2, block_hash);
+    let inventory_vec = vec![inventory];
+
+    let getdata = GetDataMessage::new(1, inventory_vec);
+
+    node.send(getdata).await.unwrap();
+
+    let mut block_received = false;
+
+    let mut received_message: NetworkMessages;
+    let mut block: BlockMessage = BlockMessage::default();
+
+    while !(block_received) {
+        received_message = node.listen().await.unwrap();
+
+        if let NetworkMessages::Block(block_message) = received_message { 
+            block_received = true;
+            block = block_message;
+        }
+    }
+
+    block.txs
+        .into_iter()
+        .enumerate()
+        .for_each(|(i, tx)| {
+            println!("Transaction {}: {}", i, tx.id());
+        });
+
+    // parse the block
+    // iterate over the transactions
+    // specifically, print the output type of each of the outputs in the tx
 }

@@ -7,8 +7,8 @@ use crate::utils::hash256::hash256;
 
 use super::utils::bits_to_target;
 
-#[derive(Clone)]
-pub struct Block { // all these fields are stored as little endian
+#[derive(Clone, Default)]
+pub struct BlockHeader { // all these fields are stored as little endian
     pub version: [u8; 4],
     pub prev_block: [u8; 32],
     pub merkle_root: [u8; 32],
@@ -17,7 +17,7 @@ pub struct Block { // all these fields are stored as little endian
     pub nonce: [u8; 4]
 }
 
-impl Block {
+impl BlockHeader {
     // all fields should be given in little endian
     pub fn new(version: [u8; 4], prev_block: [u8; 32], merkle_root: [u8; 32], timestamp: [u8; 4], bits: [u8; 4], nonce: [u8; 4]) -> Self {
         Self {
@@ -127,7 +127,7 @@ impl Block {
     }
 }
 
-impl fmt::Display for Block {
+impl fmt::Display for BlockHeader {
     // note that these fields are all displayed in big endian
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         writeln!(f, "Version: {}", hex::encode(self.version.iter().rev().cloned().collect::<Vec<u8>>()))?;
