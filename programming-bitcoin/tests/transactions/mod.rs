@@ -1,5 +1,5 @@
 use std::io::Cursor;
-use programming_bitcoin::{ecc::{point::Point, signature::Signature}, script::script::Script, transactions::{tx::Tx, tx_input::TxInput, tx_output::TxOutput}, utils::{base58::decode_base58, hash256::hash256, sig_hash_type::SigHashType}};
+use programming_bitcoin::{ecc::{point::Point, signature::Signature}, script::script::Script, transactions::{tx::Tx, tx_fetcher::TxFetcher, tx_input::TxInput, tx_output::TxOutput}, utils::{base58::decode_base58, hash256::hash256, sig_hash_type::SigHashType}};
 
 // add tests here for parsing the individual components of the tx - version, inputs, outputs, locktime (and testnet?)
 #[test]
@@ -60,9 +60,8 @@ fn test_create_p2pkh_tx() {
     let sequence: [u8; 4] = hex::decode("ffffffff").unwrap().try_into().unwrap();
     let witness: Option<Vec<Vec<u8>>> = None;
     let height = None;
-    let is_coinbase = false;
 
-    let tx_in = TxInput::new(prev_tx_id, prev_index, empty_script_sig, sequence, witness, height, is_coinbase);
+    let tx_in = TxInput::new(prev_tx_id, prev_index, empty_script_sig, sequence, witness, height);
 
     let change_amount: u64 = (0.33_f64 * 100_000_000.0) as u64;
     let change_h160 = decode_base58("mzx5YhAH9kNHtcN481u6WkjeHjYtVeKVh2").unwrap();
@@ -91,9 +90,8 @@ fn test_construct_testnet_tx() {
     let sequence: [u8; 4] = hex::decode("ffffffff").unwrap().try_into().unwrap();
     let witness: Option<Vec<Vec<u8>>> = None;
     let height = None;
-    let is_coinbase = false;
 
-    let unsigned_input = TxInput::new(prev_tx_id, prev_index, empty_script_sig, sequence, witness, height, is_coinbase);
+    let unsigned_input = TxInput::new(prev_tx_id, prev_index, empty_script_sig, sequence, witness, height);
     
     // constructing the unsigned transaction
     let target_amount: u64 =  (0.00009_f64 * 100_000_000.0) as u64;
@@ -161,10 +159,32 @@ fn test_verify_p2wsh_tx() {
 #[test]
 fn test_parse_coinbase_tx() {
     // testnet tx - id: 422495f7f5617a292fb0f57ea80907fc9b274006ec6b917cfd490c8a36bc4698
-    let raw_tx = hex::decode("020000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff2603d9fe360489147267537069646572506f6f6c2f312fa521f46501039e105204000000000000ffffffff05220200000000000022512028202d4b19bfed17d9f7f9528e4b0433c9b78399bbaf81aa4df4549e8eb527f61b58830c00000000160014f65616071e14d79e45b30c5e968ae40e6ecce95f0000000000000000266a24aa21a9edd0a75241bd531c250819e3261c497957a5930ec984a03af7a35ecb87c1abb83000000000000000002f6a2d434f52450164db24a662e20bbdf72d1cc6e973dbb2d12897d596a6689031f48a857d344e1a42fdb272bb15d6210000000000000000126a10455853415401120f080304111f1200130120000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
+    // let raw_tx = hex::decode("020000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff2603d9fe360489147267537069646572506f6f6c2f312fa521f46501039e105204000000000000ffffffff05220200000000000022512028202d4b19bfed17d9f7f9528e4b0433c9b78399bbaf81aa4df4549e8eb527f61b58830c00000000160014f65616071e14d79e45b30c5e968ae40e6ecce95f0000000000000000266a24aa21a9edd0a75241bd531c250819e3261c497957a5930ec984a03af7a35ecb87c1abb83000000000000000002f6a2d434f52450164db24a662e20bbdf72d1cc6e973dbb2d12897d596a6689031f48a857d344e1a42fdb272bb15d6210000000000000000126a10455853415401120f080304111f1200130120000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
     // arbitrary tx
     // let raw_tx = hex::decode("020000000190ed1fec18af658aaa3d3e076efa3e0609f25d0030b25b0615a42d93ea0c82fb000000006b483045022100a6dc7b0fdce5aa039f3904867706dfb4342c8fad4ec71dc53f6c8c5e2e272ca7022045b26f412c1e73eb6f5840634f13306976775b24f22a3ea743d64853394bb1170121033accfa473722be4d7480ec098262506410581b5c1a57894c92d03ea1adb898f9ffffffff02838e5e08000000001976a9140640edc25754a60f54f06e27f35e163ad18a2a7588ac0000000000000000536a4c5048454d49010070a8610022dd4b1c8762992cdd6a02112dcea08cc0affaaf67d55fc77a7dd03cff20b242d00c3d80dbae2b4995493d4c6de570b5e4f11e3817131d2ea1e26e4dab74cb7d421494e63525d6fe3600").unwrap();
+    let raw_tx = hex::decode("0100000001868278ed6ddfb6c1ed3ad5f8181eb0c7a385aa0836f01d5e4789e6bd304d87221a000000db00483045022100dc92655fe37036f47756db8102e0d7d5e28b3beb83a8fef4f5dc0559bddfb94e02205a36d4e4e6c7fcd16658c50783e00c341609977aed3ad00937bf4ee942a8993701483045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e75402201475221022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb702103b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb7152aeffffffff04d3b11400000000001976a914904a49878c0adfc3aa05de7afad2cc15f483a56a88ac7f400900000000001976a914418327e3f3dda4cf5b9089325a4b95abdfa0334088ac722c0c00000000001976a914ba35042cfe9fc66fd35ac2224eebdafd1028ad2788acdc4ace020000000017a91474d691da1574e6b3c192ecfb52cc8984ee7b6c568700000000").unwrap();
     let mut stream = Cursor::new(raw_tx);
     let tx = Tx::parse(&mut stream, false);
     println!("{}", tx);    
+}
+
+#[test]
+fn test_fetch_tx() {
+    let tx_id = "422495f7f5617a292fb0f57ea80907fc9b274006ec6b917cfd490c8a36bc4698"; // not working with this (coinbase) tx
+    // let tx_id = "1fde1c2867578910d1e1478ac7a991492aab3782b381572b3ccc41ef0acf878c"; // (coinbase) tx
+    // let tx_id = "56bf2aa92ea6ed860cdee803bcb0f132648ce3b00844b0d965a2a330d44a9391";
+    let testnet = true;
+    let fresh = true;
+    let fetcher = TxFetcher::build();
+    assert!(TxFetcher::fetch(&fetcher, tx_id, testnet, fresh).is_ok());
+}
+
+#[test]
+fn test_parse_hash() {
+    let raw_tx = hex::decode("020000000001010000000000000000000000000000000000000000000000000000000000000000ffffffff26033b093704ffa07467537069646572506f6f6c2f312f398032a80103b606ed19000000000000ffffffff05220200000000000022512028202d4b19bfed17d9f7f9528e4b0433c9b78399bbaf81aa4df4549e8eb527f68598c82100000000160014f65616071e14d79e45b30c5e968ae40e6ecce95f0000000000000000266a24aa21a9edd8c74c43129f200d0bedbe6fe75a161f28ca6b8ce9fa48fb0752f8ec950907b400000000000000002f6a2d434f52450164db24a662e20bbdf72d1cc6e973dbb2d12897d596a6689031f48a857d344e1a42fdb272bb15d6210000000000000000126a10455853415401120f080304111f1200130120000000000000000000000000000000000000000000000000000000000000000000000000").unwrap();
+    let mut stream = Cursor::new(raw_tx);
+    let tx = Tx::parse(&mut stream, false);
+    println!("{}", tx);
+    let txid = tx.id();
+    println!("TXID: {}", txid);
 }

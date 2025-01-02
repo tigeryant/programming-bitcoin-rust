@@ -12,7 +12,7 @@ use crate::utils::sig_hash_type::SigHashType;
 
 use super::input_signing_data::InputSigningData;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Tx {
     pub version: u32,
     pub tx_ins: Vec<TxInput>,
@@ -61,12 +61,17 @@ impl Tx {
         // Serialize version
         result.extend_from_slice(&self.version.to_le_bytes());
         
-        // Serialize tx_ins
+        // Serialize tx_ins length as varint
         let inputs = &self.tx_ins;
         result.extend_from_slice(&encode_varint(inputs.len() as u64));
 
-        for input in inputs {
-            result.extend(input.serialize());
+        // Serialize tx_ins, using different logic for coinbase & BIP-34 transactions
+        if self.is_coinbase() && self.is_bip_34() {
+            result.extend_from_slice(&inputs[0].serialize_bip_34());
+        } else {
+            for input in inputs {
+                result.extend_from_slice(&input.serialize());
+            }
         }
         
         // Serialize tx_outs
@@ -158,9 +163,7 @@ impl Tx {
         
         let tx_ins: Vec<TxInput> = (0..input_count)
             .map(|_| {
-                let tx_input = TxInput::parse(stream).unwrap();
-                dbg!(&tx_input);
-                tx_input
+                TxInput::parse(stream).unwrap()
             })
             .collect();
 
@@ -490,9 +493,8 @@ impl Tx {
         let sequence = unsigned_input.sequence;
         let witness = unsigned_input.witness;
         let height = unsigned_input.height;
-        let is_coinbase = unsigned_input.is_coinbase;
         // return a new signed input
-        TxInput::new(prev_tx_id, prev_index, script_sig, sequence, witness, height, is_coinbase)
+        TxInput::new(prev_tx_id, prev_index, script_sig, sequence, witness, height)
     }
 
     pub fn sign_multiple_inputs(&self, input_signing_data: Vec<InputSigningData>) -> Vec<TxInput> {
@@ -521,6 +523,10 @@ impl Tx {
         let block_height: &Vec<u8> = &script_sig.commands[0];
         u32::from_le_bytes(block_height[..4].try_into().unwrap())
     }
+
+    pub fn is_bip_34(&self) -> bool {
+        self.tx_ins[0].height.is_some()
+    }
 }
 
 impl fmt::Display for Tx {
@@ -536,5 +542,18 @@ impl fmt::Display for Tx {
             writeln!(f, "{}: {}", i, output)?;
         }
         writeln!(f, "locktime: {}", self.locktime)
+    }
+}
+
+impl fmt::Debug for Tx {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Tx")
+            .field("version", &format!("{:08x}", self.version))
+            .field("tx_ins", &self.tx_ins.iter().map(|input| format!("{:?}", input)).collect::<Vec<_>>())
+            .field("tx_outs", &self.tx_outs.iter().map(|output| format!("{:?}", output)).collect::<Vec<_>>())
+            .field("locktime", &format!("{:08x}", self.locktime))
+            .field("testnet", &self.testnet)
+            .field("segwit", &self.segwit)
+            .finish()
     }
 }

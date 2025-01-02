@@ -70,11 +70,13 @@ fn op_2(stack: &mut Vec<Vec<u8>>) -> bool {
     true
 }
 
+// OP_3
 fn op_3(stack: &mut Vec<Vec<u8>>) -> bool {
     stack.push(encode_num(3));
     true
 }
 
+// OP_6
 fn op_6(stack: &mut Vec<Vec<u8>>) -> bool {
     stack.push(encode_num(6));
     true

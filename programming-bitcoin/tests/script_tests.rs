@@ -99,3 +99,8 @@ fn test_parse_p2wsh() {
 }
 
 // fn test_p2wsh_evaluation() {}
+
+// #[test]
+// fn test_serialize_script() {
+//     let raw_script = hex::decode("").unwrap();
+// }

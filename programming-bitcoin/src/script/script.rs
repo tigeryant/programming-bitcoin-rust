@@ -71,10 +71,10 @@ impl Script {
 
     pub fn parse_script_sig(
         reader: &mut Cursor<Vec<u8>>,
-    ) -> Result<(Self, Option<u32>, bool), Error> {
+    ) -> Result<(Self, Option<u32>), Error> {
         let initial_position = reader.position();
         match Self::parse(reader) {
-            Ok(script) => Ok((script, None, false)),
+            Ok(script) => Ok((script, None)),
             // If standard parsing fails, try BIP-34 parsing
             Err(_) => {
                 reader.set_position(initial_position);
@@ -85,13 +85,11 @@ impl Script {
                 // Height (BIP-34 requirement)
                 let position_before_varint = reader.position();
                 let height_length = read_varint(reader)?;
-                dbg!(height_length);
                 let position_after_varint = reader.position();
                 let varint_length = position_after_varint - position_before_varint;
 
                 let mut padded_bytes = [0u8; 4];
                 let mut height_bytes = vec![0u8; height_length as usize];
-                dbg!(hex::encode(&height_bytes));
                 reader.read_exact(&mut height_bytes)?;
                 let bytes_clone = height_bytes.clone();
                 padded_bytes[..height_length as usize].copy_from_slice(&bytes_clone);
@@ -107,8 +105,7 @@ impl Script {
                 }
 
                 let script = Self { commands };
-                let is_coinbase = true;
-                Ok((script, Some(height), is_coinbase))
+                Ok((script, Some(height)))
             }
         }
     }
@@ -159,6 +156,52 @@ impl Script {
         }
         length_bytes.append(&mut result);
         length_bytes
+    }
+
+    // Serializes a BIP-34 compliant script into a byte vector
+    pub fn serialize_bip_34(&self) -> Vec<u8> {
+        let mut result = self.raw_serialize_bip_34();
+        let total = result.len();
+        let mut length_bytes = vec![];
+        if total < 0xfd {
+            length_bytes.push(total as u8);
+        } else if total <= 0xffff {
+            length_bytes.push(0xfd);
+            length_bytes.extend_from_slice(&(total as u16).to_le_bytes());
+        } else {
+            length_bytes.push(0xfe);
+            length_bytes.extend_from_slice(&(total as u32).to_le_bytes());
+        }
+        length_bytes.append(&mut result);
+        length_bytes
+    }
+
+    // Serialize a BIP-34 script by appending the arbitrary data without a length varint
+    fn raw_serialize_bip_34(&self) -> Vec<u8> {
+        let mut result = vec![];
+        let height_cmd = &self.commands[0];
+        let length = height_cmd.len();
+        if length < 76 {
+            // encode length as a single byte
+            result.push(length as u8);
+        } else if length <= 0xff {
+            // op_pushdata1, then encode length as a byte
+            result.push(76);
+            result.push(length as u8);
+        } else if length <= 520 {
+            // op_pushdata2, then encode length as two bytes
+            result.push(77);
+            result.extend_from_slice(&length.to_le_bytes()[..2]);
+        } else {
+            // if it's longer than 520 bytes it's invalid - error
+            panic!("too long a cmd");
+        }
+        result.extend_from_slice(height_cmd);
+
+        let arb_data = &self.commands[1];
+        result.extend_from_slice(arb_data);
+
+        result
     }
 
     pub fn concat(self, other: Script) -> Self {
@@ -308,7 +351,7 @@ impl Script {
     pub fn is_p2wpkh_script_pubkey(&self) -> bool {
         // OP_0 and a 20 byte hash
         let length_2 = self.commands.len() == 2;
-        let first_byte_zero = self.commands[0] == vec![0x00];
+        let first_byte_zero = self.commands[0][0] == 0x00;
         let second_element_data = self.commands[1].len() > 1;
         let data_20_long = self.commands[1].len() == 20;
 
@@ -318,7 +361,7 @@ impl Script {
     pub fn is_p2wsh_script_pubkey(&self) -> bool {
         // OP_0 and a 32 byte (SHA256) hash
         let length_2 = self.commands.len() == 2;
-        let first_byte_zero = self.commands[0] == vec![0x00];
+        let first_byte_zero = self.commands[0][0] == 0x00;
         let second_element_data = self.commands[1].len() > 1;
         let data_32_long = self.commands[1].len() == 32;
 
@@ -347,24 +390,36 @@ impl Script {
         self.commands[0][0] == 0x51 && // OP_1
         self.commands[1].len() > 1 // data element
     }
+
+    pub fn is_p2pkh_script_pubkey(&self) -> bool {
+        // OP_DUP, OP_HASH160, data, OP_EQUALVERIFY, OP_CHECKSIG
+        // let commands: Vec<Vec<u8>> = vec![vec![0x76], vec![0xa9], raw_hash, vec![0x88], vec![0xac]];
+        self.commands[0][0] == 0x76 && // OP_DUP
+        self.commands[1][0] == 0xa9 && // OP_HASH160
+        self.commands[2].len() > 1 && // data
+        self.commands[3][0] == 0x88 && // OP_EQUALVERIFY
+        self.commands[4][0] == 0xac // OP_CHECKSIG
+    }
+
+    pub fn script_type(&self) -> String {
+       match self {
+            _script_type if self.commands.is_empty() => String::from("script commands empty"),
+            _script_type if self.is_p2sh_script_pubkey() => String::from("P2SH"),
+            _script_type if self.is_p2wsh_script_pubkey() => String::from("P2WSH"),
+            _script_type if self.is_p2wpkh_script_pubkey() => String::from("P2WPKH"),
+            _script_type if self.is_p2tr_script_pubkey() => String::from("P2TR"),
+            _script_type if self.is_p2pk_script_pubkey() => String::from("P2PK"),
+            _script_type if self.is_p2pkh_script_pubkey() => String::from("P2PKH"),
+            _ => String::from("unknown")
+        } 
+    }
 }
 
 impl fmt::Display for Script {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let op_code_names = create_op_code_names();
 
-        let script_type = match self {
-            _script_type if self.commands.is_empty() => String::from("empty script"),
-            _script_type if self.is_p2sh_script_pubkey() => String::from("P2SH"),
-            _script_type if self.is_p2wsh_script_pubkey() => String::from("P2WSH"),
-            _script_type if self.is_p2wpkh_script_pubkey() => String::from("P2WPKH"),
-            _script_type if self.is_p2tr_script_pubkey() => String::from("P2TR"),
-            _script_type if self.is_p2pk_script_pubkey() => String::from("P2PK"),
-            _ => String::from("unknown")
-        };
-
-        // First write the script length
-        writeln!(f, "  Script type: {}", script_type)?;
+        writeln!(f, "  Script type: {}", self.script_type())?;
         writeln!(f, "  Length: {} byte(s)", self.raw_serialize().len())?;
         writeln!(f, "  Data:")?;
         self.commands.iter().try_fold((), |_, cmd| {
@@ -400,17 +455,9 @@ impl fmt::Debug for Script {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let op_code_names = create_op_code_names();
 
-        let script_type = match self {
-            _script_type if self.is_p2sh_script_pubkey() => String::from("P2SH"),
-            _script_type if self.is_p2wsh_script_pubkey() => String::from("P2WSH"),
-            _script_type if self.is_p2wpkh_script_pubkey() => String::from("P2WPKH"),
-            _script_type if self.is_p2tr_script_pubkey() => String::from("P2TR"),
-            _script_type if self.is_p2pk_script_pubkey() => String::from("P2PK"),
-            _ => String::from("unknown")
-        };
-        
         writeln!(f, "Script {{")?;
-        writeln!(f, "  Script type: {}", script_type)?;
+        writeln!(f, "  Script type: {}", self.script_type())?;
+        writeln!(f, "  Raw bytes: {}", hex::encode(self.serialize()))?;
         writeln!(f, "    Length: {} byte(s)", self.raw_serialize().len())?;
         writeln!(f, "    Data:")?;
         

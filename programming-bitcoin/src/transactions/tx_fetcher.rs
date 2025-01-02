@@ -15,19 +15,26 @@ impl TxFetcher {
         }
     }
 
-    /// Fetch a tx from the UTXO set or return it from the cache
+    /// Fetches a tx from the UTXO set via an API (or returns it from the cache)
     // expects the tx_id in big endian encoding
-    pub fn fetch(&self, tx_id: &str, testnet: bool, fresh: bool) -> Result<Tx, Box<dyn std::error::Error>> { // note the use of dynamic dispatch here
+    pub fn fetch(&self, tx_id: &str, testnet: bool, fresh: bool) -> Result<Tx, Box<dyn std::error::Error>> {
         let mut cache = self.cache.borrow_mut();
         if fresh || !cache.contains_key(tx_id) {
             let api_url = Self::get_url(testnet);
             let url = format!("{}/tx/{}/hex", api_url, tx_id);
-            let response = reqwest::blocking::get(url)?.text()?;
-            let raw = hex::decode(response.trim())?;
+            let response = reqwest::blocking::get(url)?;
+
+            let status = response.status();
+            let response_text = response.text()?;
+            
+            // Check status code and include response text in error message
+            if !status.is_success() {
+                return Err(format!("HTTP request failed with status: {} - Response: {}", status, response_text).into());
+            }
+
+            let raw = hex::decode(response_text.trim())?;
             let mut cursor = Cursor::new(raw);
-            let tx = Tx::parse(&mut cursor, testnet); // do we need the ? operator? -> can only be used for certain methods
-            // let tx = Tx::parse(&mut cursor)?;
-            // println!("{}", &tx);
+            let tx = Tx::parse(&mut cursor, testnet);
             
             if tx.id() != tx_id {
                 return Err(format!("not the same id: tx.id(): {} vs tx_id: {}", tx.id(), tx_id).into());
@@ -36,6 +43,7 @@ impl TxFetcher {
         }
         Ok(cache.get(tx_id).unwrap().clone())
     }
+
 
     /// Builds the TxFetcher
     pub fn build() -> TxFetcher {

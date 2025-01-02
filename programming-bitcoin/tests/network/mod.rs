@@ -8,13 +8,16 @@ use programming_bitcoin::network::messages::block::BlockMessage;
 use programming_bitcoin::network::messages::get_data::GetDataMessage;
 use programming_bitcoin::network::messages::get_headers::GetHeadersMessage;
 use programming_bitcoin::network::messages::headers::HeadersMessage;
-use programming_bitcoin::network::network_envelope::NetworkEnvelope;
 use programming_bitcoin::network::messages::version::VersionMessage;
+use programming_bitcoin::network::network_envelope::NetworkEnvelope;
 use programming_bitcoin::network::network_envelope::{
     MAINNET_NETWORK_MAGIC, TESTNET_NETWORK_MAGIC,
 };
 use programming_bitcoin::network::network_message::{NetworkMessage, NetworkMessages};
 use programming_bitcoin::network::node::Node;
+// use programming_bitcoin::transactions;
+use programming_bitcoin::transactions::tx_input::TxInput;
+use tokio::task;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub const PI_TESTNET_NODE_IP: &str = "192.168.2.4";
@@ -23,25 +26,17 @@ pub const DEFAULT_TESTNET_PORT: u32 = 18333;
 pub const PUBLIC_TESTNET_NODE_IP: &str = "89.117.19.191";
 
 pub static TESTNET_GENESIS_BLOCK_HASH: [u8; 32] = [
-    0x43, 0x49, 0x7f, 0xd7, 0xf8, 0x26, 0x95, 0x71,
-    0x08, 0xf4, 0xa3, 0x0f, 0xd9, 0xce, 0xc3, 0xae,
-    0xba, 0x79, 0x97, 0x20, 0x84, 0x9e, 0x0e, 0xad,
-    0x01, 0xea, 0x33, 0x09, 0x00, 0x00, 0x00, 0x00
+    0x43, 0x49, 0x7f, 0xd7, 0xf8, 0x26, 0x95, 0x71, 0x08, 0xf4, 0xa3, 0x0f, 0xd9, 0xce, 0xc3, 0xae,
+    0xba, 0x79, 0x97, 0x20, 0x84, 0x9e, 0x0e, 0xad, 0x01, 0xea, 0x33, 0x09, 0x00, 0x00, 0x00, 0x00,
 ];
 
 pub static TESTNET_GENESIS_RAW_HEADER: [u8; 80] = [
-    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x3b, 0xa3, 0xed, 0xfd,
-    0x7a, 0x7b, 0x12, 0xb2, 0x7a, 0xc7, 0x2c, 0x3e,
-    0x67, 0x76, 0x8f, 0x61, 0x7f, 0xc8, 0x1b, 0xc3,
-    0x88, 0x8a, 0x51, 0x32, 0x3a, 0x9f, 0xb8, 0xaa,
-    0x4b, 0x1e, 0x5e, 0x4a, 0xda, 0xe5, 0x49, 0x4d,
-    0xff, 0xff, 0x00, 0x1d, 0x1a, 0xa4, 0xae, 0x18
+    0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x3b, 0xa3, 0xed, 0xfd, 0x7a, 0x7b, 0x12, 0xb2, 0x7a, 0xc7, 0x2c, 0x3e,
+    0x67, 0x76, 0x8f, 0x61, 0x7f, 0xc8, 0x1b, 0xc3, 0x88, 0x8a, 0x51, 0x32, 0x3a, 0x9f, 0xb8, 0xaa,
+    0x4b, 0x1e, 0x5e, 0x4a, 0xda, 0xe5, 0x49, 0x4d, 0xff, 0xff, 0x00, 0x1d, 0x1a, 0xa4, 0xae, 0x18,
 ];
-
 
 pub static LOWEST_BITS: [u8; 4] = [0xff, 0xff, 0x00, 0x1d];
 
@@ -219,7 +214,12 @@ async fn test_get_headers() {
     node.handshake().await.unwrap();
 
     let tip_hash = get_tip_hash().await.unwrap();
-    let getheaders = GetHeadersMessage::new(70015, 1, tip_hash, Some(TESTNET_GENESIS_BLOCK_HASH.to_vec()));
+    let getheaders = GetHeadersMessage::new(
+        70015,
+        1,
+        tip_hash,
+        Some(TESTNET_GENESIS_BLOCK_HASH.to_vec()),
+    );
     node.send(getheaders).await.unwrap();
 
     let mut headers_received = false;
@@ -227,7 +227,9 @@ async fn test_get_headers() {
     while !(headers_received) {
         let received_message: NetworkMessages = node.listen().await.unwrap();
 
-        if let NetworkMessages::Headers(_) = received_message { headers_received = true }
+        if let NetworkMessages::Headers(_) = received_message {
+            headers_received = true
+        }
     }
     assert!(headers_received);
 }
@@ -241,8 +243,8 @@ async fn get_validate_headers() {
     let logging = true;
     let mut node = Node::new(host, port, testnet, logging).await.unwrap();
 
-    let mut stream: Cursor<Vec<u8>> =  Cursor::new(TESTNET_GENESIS_RAW_HEADER.to_vec());
-    let mut previous = BlockHeader::parse(&mut stream).unwrap();   
+    let mut stream: Cursor<Vec<u8>> = Cursor::new(TESTNET_GENESIS_RAW_HEADER.to_vec());
+    let mut previous = BlockHeader::parse(&mut stream).unwrap();
     // these are for the difficulty checking (mainnet)
     // let mut first_epoch_timestamp = previous.timestamp;
     // let mut expected_bits = LOWEST_BITS;
@@ -264,8 +266,8 @@ async fn get_validate_headers() {
 
         while !(headers_received) {
             received_message = node.listen().await.unwrap();
-    
-            if let NetworkMessages::Headers(header_message) = received_message { 
+
+            if let NetworkMessages::Headers(header_message) = received_message {
                 headers_received = true;
                 headers = header_message;
             }
@@ -301,6 +303,7 @@ async fn get_validate_headers() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_get_data() {
     let host = PUBLIC_TESTNET_NODE_IP;
     // let host = PI_TESTNET_NODE_IP;
@@ -323,7 +326,8 @@ async fn test_get_data() {
     // call getdata for each of these headers
     */
 
-    let block_hash = hex::decode("00000000000003bc144d301e7951351c02f7fb1dd77e4024fc80397ec5a22fce").unwrap();
+    let block_hash =
+        hex::decode("00000000000003bc144d301e7951351c02f7fb1dd77e4024fc80397ec5a22fce").unwrap();
     let block_hash = block_hash.into_iter().rev().collect::<Vec<u8>>(); // convert from big to little endian
     let block_hash: [u8; 32] = block_hash.try_into().unwrap();
 
@@ -347,20 +351,50 @@ async fn test_get_data() {
     while !(block_received) {
         received_message = node.listen().await.unwrap();
 
-        if let NetworkMessages::Block(block_message) = received_message { 
+        if let NetworkMessages::Block(block_message) = received_message {
             block_received = true;
             block = block_message;
         }
     }
 
-    block.txs
-        .into_iter()
-        .enumerate()
-        .for_each(|(i, tx)| {
-            println!("Transaction {}: {}", i, tx.id());
-        });
+    let transactions = block.txs.into_iter().enumerate().take(100);
 
-    // parse the block
-    // iterate over the transactions
-    // specifically, print the output type of each of the outputs in the tx
+    /*
+    let tx_input = block.txs[1].tx_ins[0].clone();
+
+    // let input_clone = tx_input.clone(); // Clone input before moving it
+    let script_pubkey = task::spawn_blocking(move || tx_input.script_pubkey(testnet))
+    // let script_pubkey = task::spawn_blocking(move || input_clone.script_pubkey(testnet))
+        .await
+        .unwrap();
+    dbg!(script_pubkey.script_type());
+     */
+
+    let mut p2wpkh_txs: Vec<TxInput> = vec![];
+
+    for (i, tx) in transactions {
+        println!("Transaction {}: {}", i, tx.id());
+
+        for input in tx.tx_ins.iter() {
+            // guard againt coinbase tx input
+            if input.prev_tx_id == [0u8; 32] {
+                println!("coinbase tx input - no script type");
+                continue;
+            }
+
+            let input_clone = input.clone();
+            let script_pubkey = task::spawn_blocking(move || input_clone.script_pubkey(testnet))
+                .await
+                .unwrap();
+
+            dbg!(script_pubkey.script_type());
+            
+            if script_pubkey.is_p2wpkh_script_pubkey() {
+                println!("adding p2wpkh script to vector");
+                p2wpkh_txs.push(input.clone());
+            }
+        }
+    }
+
+    dbg!(p2wpkh_txs.len());
 }
