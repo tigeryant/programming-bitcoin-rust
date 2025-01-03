@@ -1,5 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, io::Cursor};
 use reqwest;
+use tokio::task::JoinHandle;
 use crate::transactions::tx::Tx;
 
 pub struct TxFetcher {
@@ -44,6 +45,27 @@ impl TxFetcher {
         Ok(cache.get(tx_id).unwrap().clone())
     }
 
+    pub async fn fetch_tx(tx_id: String, testnet: bool) -> Result<Tx, Box<dyn std::error::Error + Send + Sync>> {
+        let api_url = Self::get_url(testnet);
+        let url = format!("{}/tx/{}/hex", api_url, &tx_id);
+        let response = reqwest::get(url).await?;
+
+        let status = response.status();
+        let response_text = response.text().await?;
+        
+        if !status.is_success() {
+            return Err(format!("HTTP request failed with status: {} - Response: {}", status, response_text).into());
+        }
+
+        let raw = hex::decode(response_text.trim())?;
+        let mut cursor = Cursor::new(raw);
+        let tx = Tx::parse(&mut cursor, testnet);
+        
+        if tx.id() != tx_id {
+            return Err(format!("not the same id: tx.id(): {} vs tx_id: {}", tx.id(), tx_id).into());
+        }
+        Ok(tx)
+    }
 
     /// Builds the TxFetcher
     pub fn build() -> TxFetcher {

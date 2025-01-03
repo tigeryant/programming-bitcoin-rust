@@ -17,8 +17,12 @@ use programming_bitcoin::network::network_message::{NetworkMessage, NetworkMessa
 use programming_bitcoin::network::node::Node;
 // use programming_bitcoin::transactions;
 use programming_bitcoin::transactions::tx_input::TxInput;
-use tokio::task;
+use tokio::{ task, time };
 use std::time::{SystemTime, UNIX_EPOCH};
+
+use programming_bitcoin::transactions::tx_fetcher::TxFetcher;
+use futures::future::join_all;
+use std::time::Instant;
 
 pub const PI_TESTNET_NODE_IP: &str = "192.168.2.4";
 pub const DEFAULT_TESTNET_PORT: u32 = 18333;
@@ -303,7 +307,6 @@ async fn get_validate_headers() {
 }
 
 #[tokio::test]
-#[ignore]
 async fn test_get_data() {
     let host = PUBLIC_TESTNET_NODE_IP;
     // let host = PI_TESTNET_NODE_IP;
@@ -357,18 +360,7 @@ async fn test_get_data() {
         }
     }
 
-    let transactions = block.txs.into_iter().enumerate().take(100);
-
-    /*
-    let tx_input = block.txs[1].tx_ins[0].clone();
-
-    // let input_clone = tx_input.clone(); // Clone input before moving it
-    let script_pubkey = task::spawn_blocking(move || tx_input.script_pubkey(testnet))
-    // let script_pubkey = task::spawn_blocking(move || input_clone.script_pubkey(testnet))
-        .await
-        .unwrap();
-    dbg!(script_pubkey.script_type());
-     */
+    let transactions = block.txs.into_iter().enumerate().take(3000);
 
     let mut p2wpkh_txs: Vec<TxInput> = vec![];
 
@@ -387,14 +379,89 @@ async fn test_get_data() {
                 .await
                 .unwrap();
 
-            dbg!(script_pubkey.script_type());
-            
             if script_pubkey.is_p2wpkh_script_pubkey() {
-                println!("adding p2wpkh script to vector");
                 p2wpkh_txs.push(input.clone());
+                println!("Found P2PKH tx: {}", tx.id());
+                println!("{}", p2wpkh_txs[0]);
+                return;
             }
         }
     }
+}
 
-    dbg!(p2wpkh_txs.len());
+// write test to iterate over outputs in a block
+#[tokio::test]
+#[ignore]
+async fn fetch_transactions() {
+    let host = PUBLIC_TESTNET_NODE_IP;
+    // let host = PI_TESTNET_NODE_IP;
+    let port = DEFAULT_TESTNET_PORT;
+    let testnet = true;
+    let logging = true;
+    let mut node = Node::new(host, port, testnet, logging).await.unwrap();
+
+    node.handshake().await.unwrap();
+
+    let block_hash =
+        hex::decode("00000000000003bc144d301e7951351c02f7fb1dd77e4024fc80397ec5a22fce").unwrap();
+    let block_hash = block_hash.into_iter().rev().collect::<Vec<u8>>(); // convert from big to little endian
+    let block_hash: [u8; 32] = block_hash.try_into().unwrap();
+
+    let inventory = Inventory::new(2, block_hash); // MSG_BLOCK
+    let inventory_vec = vec![inventory];
+
+    let getdata = GetDataMessage::new(1, inventory_vec);
+
+    node.send(getdata).await.unwrap();
+
+    let mut block_received = false;
+
+    let mut received_message: NetworkMessages;
+    let mut block: BlockMessage = BlockMessage::default();
+
+    while !(block_received) {
+        received_message = node.listen().await.unwrap();
+
+        if let NetworkMessages::Block(block_message) = received_message {
+            block_received = true;
+            block = block_message;
+        }
+    }
+
+    let transactions = block.txs.into_iter().enumerate().take(3000);
+    let total_txs: usize = 80;
+    let tx_ids: Vec<(usize, String)> = transactions.map(|(i, tx)| (i, tx.id())).take(total_txs).collect();
+
+    let mut handles = vec![];
+
+    for (i, tx_id) in tx_ids {
+        println!("TXID {}: {}", i, tx_id);
+
+        // Returns a future/task to then process later
+        handles.push(TxFetcher::fetch_tx(tx_id, testnet));
+    }
+
+    let start = Instant::now();
+
+    while !handles.is_empty() {
+        let chunk_size = 10.min(handles.len());
+        let handles_subset: Vec<_> = handles.drain(handles.len() - chunk_size..).collect();
+
+        // Wait for all results in this batch
+        let results = join_all(handles_subset).await;
+        
+        // Process all results in this batch
+        for result in results {
+            let tx = result.unwrap();
+            println!("Successfully fetched tx: {}", tx.id());
+        }
+
+        println!("batch processed");
+
+        time::sleep(time::Duration::from_millis(1750)).await
+    }
+    
+    let duration = start.elapsed();
+
+    println!("Fetched {} transactions in {:?}", total_txs, duration);
 }

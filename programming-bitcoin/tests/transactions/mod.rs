@@ -1,5 +1,6 @@
 use std::io::Cursor;
 use programming_bitcoin::{ecc::{point::Point, signature::Signature}, script::script::Script, transactions::{tx::Tx, tx_fetcher::TxFetcher, tx_input::TxInput, tx_output::TxOutput}, utils::{base58::decode_base58, hash256::hash256, sig_hash_type::SigHashType}};
+use tokio::task;
 
 // add tests here for parsing the individual components of the tx - version, inputs, outputs, locktime (and testnet?)
 #[test]
@@ -187,4 +188,33 @@ fn test_parse_hash() {
     println!("{}", tx);
     let txid = tx.id();
     println!("TXID: {}", txid);
+}
+
+#[tokio::test]
+async fn test_identify_p2wpkh() {
+    let raw_tx = hex::decode("020000000001016972546966be990440a0665b73d0f4c3c942592d1f64d1033717aaa3e2c2ec910000000000fdffffff01610a0200000000001976a91476c6195adcbea5c8656d33e8af0567833e63b8c988ac024730440220424c69a855dc79b1f34d9a2ae88b4269988f4dc1dff697fc0d32b4bcfb70a36d022058c359af022f0db3bd37cbe8a426e5218ce61c761b161668883312f1055745550121022a263d5273494ce9247387770ae66e6989b665aaf8fade4403fd1b06601b9cdf9d640a00").unwrap();
+    let mut stream = Cursor::new(raw_tx);
+    let tx = Tx::parse(&mut stream, false);
+    let testnet = true;
+
+    for input in tx.tx_ins.iter() {
+        // guard againt coinbase tx input
+        if input.prev_tx_id == [0u8; 32] {
+            println!("coinbase tx input - no script type");
+            continue;
+        }
+
+        let input_clone = input.clone();
+        let script_pubkey = task::spawn_blocking(move || input_clone.script_pubkey(testnet))
+            .await
+            .unwrap();
+        
+        if script_pubkey.is_p2wpkh_script_pubkey() {
+            println!("Found P2WPKH tx: {}", tx.id());
+            println!("{}", tx);
+            println!("Script_pubkey:");
+            println!("{}", script_pubkey);
+            return;
+        }
+    }
 }
