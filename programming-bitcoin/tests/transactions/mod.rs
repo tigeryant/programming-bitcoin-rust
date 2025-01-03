@@ -218,3 +218,17 @@ async fn test_identify_p2wpkh() {
         }
     }
 }
+
+#[test]
+fn test_verify_p2wpkh_input() {
+    // mainnet tx - debug further
+    // let raw_tx = hex::decode("020000000001016972546966be990440a0665b73d0f4c3c942592d1f64d1033717aaa3e2c2ec910000000000fdffffff01610a0200000000001976a91476c6195adcbea5c8656d33e8af0567833e63b8c988ac024730440220424c69a855dc79b1f34d9a2ae88b4269988f4dc1dff697fc0d32b4bcfb70a36d022058c359af022f0db3bd37cbe8a426e5218ce61c761b161668883312f1055745550121022a263d5273494ce9247387770ae66e6989b665aaf8fade4403fd1b06601b9cdf9d640a00").unwrap();
+    // testnet tx
+    let raw_tx = hex::decode("0100000000010115e180dc28a2327e687facc33f10f2a20da717e5548406f7ae8b4c811072f8560100000000ffffffff0100b4f505000000001976a9141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b92888ac02483045022100df7b7e5cda14ddf91290e02ea10786e03eb11ee36ec02dd862fe9a326bbcb7fd02203f5b4496b667e6e281cc654a2da9e4f08660c620a1051337fa8965f727eb19190121038262a6c6cec93c2d3ecd6c6072efea86d02ff8e3328bbd0242b20af3425990ac00000000").unwrap();
+    let mut stream = Cursor::new(raw_tx);
+    let tx = Tx::parse(&mut stream, true);
+    println!("{}", tx);
+    // verify the input 
+    let result = tx.verify_input(SigHashType::SigHashAll, 0);
+    assert!(result);
+}

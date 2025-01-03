@@ -104,8 +104,8 @@ impl TxInput {
     }
 
     /// Get the output value by looking up the tx hash. Returns the amount in satoshi.
-    pub fn value(&self) -> u64 {
-        let tx = &self.fetch_tx(true, true);
+    pub fn value(&self, testnet: bool) -> u64 {
+        let tx = &self.fetch_tx(testnet, true);
         let index = u32::from_le_bytes(self.prev_index) as usize;
         tx.get_tx_outs()[index].get_amount()
     }

@@ -247,8 +247,8 @@ impl Tx {
                         stream.read_exact(&mut witness_item).unwrap();
                         items.push(witness_item);
                     }
-                    input.set_witness(Some(items.clone()));
                 }
+                let input = input.set_witness(Some(items.clone()));
                 input
             })
             .collect();
@@ -273,7 +273,7 @@ impl Tx {
     pub fn fee(&self) -> u64 {
         let input_total: u64 = self.tx_ins
             .iter()
-            .map(|input| input.value())
+            .map(|input| input.value(self.testnet))
             .sum();
 
         let output_total: u64 = self.tx_outs
@@ -360,17 +360,18 @@ impl Tx {
                 witness = None;
             }
         } else if script_pubkey.is_p2wpkh_script_pubkey() {
+            println!("script pubkey is p2wpkh");
             z = self.sig_hash_bip143(index, None, None);
             witness = input.clone().witness;
         } else if script_pubkey.is_p2wsh_script_pubkey() {
-                let input_witness = input.witness.clone().unwrap();
-                let command = &input_witness[input_witness.len() - 1];
-                let mut raw_witness = encode_varint(command.len() as u64);
-                raw_witness.extend_from_slice(command);
-                let mut stream: Cursor<Vec<u8>> =  Cursor::new(raw_witness);
-                let witness_script = Script::parse(&mut stream).unwrap();
-                z = self.sig_hash_bip143(index, None, Some(witness_script));
-                witness = Some(input_witness);
+            let input_witness = input.witness.clone().unwrap();
+            let command = &input_witness[input_witness.len() - 1];
+            let mut raw_witness = encode_varint(command.len() as u64);
+            raw_witness.extend_from_slice(command);
+            let mut stream: Cursor<Vec<u8>> =  Cursor::new(raw_witness);
+            let witness_script = Script::parse(&mut stream).unwrap();
+            z = self.sig_hash_bip143(index, None, Some(witness_script));
+            witness = Some(input_witness);
         } else { // legacy tx
             z = self.sig_hash(&sig_hash_type, index, false);
             let z_string = hex::encode(&z);
@@ -396,7 +397,7 @@ impl Tx {
     }
 
     /// Returns a byte vector of the signature hash to be signed for the input at this index
-    fn sig_hash_bip143(&self, input_index: usize, _redeem_script: Option<Script>, _witness_script: Option<Script>) -> Vec<u8> {
+    fn sig_hash_bip143(&self, input_index: usize, redeem_script: Option<Script>, witness_script: Option<Script>) -> Vec<u8> {
         // per BIP143 spec
         let tx_in = self.tx_ins[input_index].clone();
 
@@ -408,21 +409,18 @@ impl Tx {
         result.extend_from_slice(&tx_in.get_prev_tx_id_le()); // Previous tx id in little-endian
         result.extend_from_slice(&tx_in.prev_index); // 4-byte little-endian index
 
-        todo!();
-        // let script_code: Vec<u8>;
-        // if witness_script.is_some() {
-        //     TODO implement
-        //     script_code = witness_script.serialize()
-        // } else if redeem_script.is_some() {
-        //     TODO implement
-        //     script_code = p2pkh_script(redeem_script.cmds[1]).serialize()
-        // } else {
-        let script_code = Script::p2pkh_script(tx_in.script_pubkey(self.testnet).get_commands()[1].clone()).serialize();
-        // }
+        let script_code: Vec<u8>;
+        if witness_script.is_some() {
+            script_code = witness_script.unwrap().serialize();
+        } else if redeem_script.is_some() {
+            script_code = Script::p2pkh_script(redeem_script.unwrap().commands[1].clone()).serialize()
+        } else {
+            script_code = Script::p2pkh_script(tx_in.script_pubkey(self.testnet).commands[1].clone()).serialize();
+        }
         result.extend_from_slice(&script_code);
 
         // Add tx_in value in little endian (8 bytes)
-        result.extend_from_slice(&tx_in.value().to_le_bytes());
+        result.extend_from_slice(&tx_in.value(self.testnet).to_le_bytes());
 
         // Add tx_in sequence in little endian (4 bytes)
         result.extend_from_slice(&tx_in.sequence);

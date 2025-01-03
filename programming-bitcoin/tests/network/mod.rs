@@ -389,7 +389,7 @@ async fn test_get_data() {
     }
 }
 
-// write test to iterate over outputs in a block
+// Demonstrates concurrently making API calls in batches to fetch transactions
 #[tokio::test]
 #[ignore]
 async fn fetch_transactions() {

@@ -193,6 +193,9 @@ fn op_checksig(stack: &mut Vec<Vec<u8>>, z: Vec<u8>) -> bool {
     // Get the public key and signature from stack
     let pub_key = stack.pop().unwrap();
     let signature_bytes = stack.pop().unwrap();
+    dbg!(hex::encode(&pub_key));
+    dbg!(hex::encode(&signature_bytes));
+    dbg!(hex::encode(&z));
     
     // 1. Convert pub_key bytes to S256Point
     let pubkey_point = Point::parse_to_s256_point(pub_key);

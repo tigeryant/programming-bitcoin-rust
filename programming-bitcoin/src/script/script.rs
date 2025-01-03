@@ -268,6 +268,7 @@ impl Script {
                     commands.extend(Script::parse(&mut stream).unwrap().get_commands());
                 }
 
+                // Could change these conditions to use the specific methods we're using below
                 // Check for native segwit (P2WPKH)
                 if stack.len() == 2 && stack[0] == vec![] && stack[1].len() == 20 {
                     let h160 = stack.pop().unwrap();
