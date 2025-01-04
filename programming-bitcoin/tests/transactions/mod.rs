@@ -234,8 +234,8 @@ fn test_verify_p2wpkh_input() {
 
 // verify:
 // p2sh - see above
-// p2wsh
-// p2sh_p2whsh
+// p2sh_p2wsh - fails (signature checking)
+// p2wpkh - fails on mainnet (signature checking)
 
 #[test]
 fn test_verify_p2sh_p2wpkh_input() {
@@ -243,6 +243,30 @@ fn test_verify_p2sh_p2wpkh_input() {
     let raw_tx = hex::decode("0200000000010140d43a99926d43eb0e619bf0b3d83b4a31f60c176beecfb9d35bf45e54d0f7420100000017160014a4b4ca48de0b3fffc15404a1acdc8dbaae226955ffffffff0100e1f5050000000017a9144a1154d50b03292b3024370901711946cb7cccc387024830450221008604ef8f6d8afa892dee0f31259b6ce02dd70c545cfcfed8148179971876c54a022076d771d6e91bed212783c9b06e0de600fab2d518fad6f15a2b191d7fbd262a3e0121039d25ab79f41f75ceaf882411fd41fa670a4c672c23ffaf0e361a969cde0692e800000000").unwrap();
     let mut stream = Cursor::new(raw_tx);
     let tx = Tx::parse(&mut stream, false);
+    println!("{}", tx);
+    let result = tx.verify_input(SigHashType::SigHashAll, 0);
+    assert!(result);
+}
+
+#[test]
+fn test_verify_p2wsh_input() {
+    // testnet tx - id: 78457666f82c28aa37b74b506745a7c7684dc7842a52a457b09f09446721e11c
+    let raw_tx = hex::decode("0100000000010115e180dc28a2327e687facc33f10f2a20da717e5548406f7ae8b4c811072f8560200000000ffffffff0188b3f505000000001976a9141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b92888ac02483045022100f9d3fe35f5ec8ceb07d3db95adcedac446f3b19a8f3174e7e8f904b1594d5b43022074d995d89a278bd874d45d0aea835d3936140397392698b7b5bbcdef8d08f2fd012321038262a6c6cec93c2d3ecd6c6072efea86d02ff8e3328bbd0242b20af3425990acac00000000").unwrap();
+    let mut stream = Cursor::new(raw_tx);
+    let tx = Tx::parse(&mut stream, true);
+    println!("{}", tx);
+    let result = tx.verify_input(SigHashType::SigHashAll, 0);
+    assert!(result);
+}
+
+#[test]
+#[ignore]
+fn test_verify_p2sh_p2wsh_input() {
+    todo!("update the input tx for this tx - find a valid p2sh_p2wsh tx to test. op_checksig failing");
+    // testnet tx - id: 954f43dbb30ad8024981c07d1f5eb6c9fd461e2cf1760dd1283f052af746fc88
+    let raw_tx = hex::decode("0100000000010115e180dc28a2327e687facc33f10f2a20da717e5548406f7ae8b4c811072f856040000002322002001d5d92effa6ffba3efa379f9830d0f75618b13393827152d26e4309000e88b1ffffffff0188b3f505000000001976a9141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b92888ac02473044022038421164c6468c63dc7bf724aa9d48d8e5abe3935564d38182addf733ad4cd81022076362326b22dd7bfaf211d5b17220723659e4fe3359740ced5762d0e497b7dcc012321038262a6c6cec93c2d3ecd6c6072efea86d02ff8e3328bbd0242b20af3425990acac00000000").unwrap();
+    let mut stream = Cursor::new(raw_tx);
+    let tx = Tx::parse(&mut stream, true);
     println!("{}", tx);
     let result = tx.verify_input(SigHashType::SigHashAll, 0);
     assert!(result);

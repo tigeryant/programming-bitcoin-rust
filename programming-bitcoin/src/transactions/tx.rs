@@ -360,7 +360,6 @@ impl Tx {
                 witness = None;
             }
         } else if script_pubkey.is_p2wpkh_script_pubkey() {
-            println!("script pubkey is p2wpkh");
             z = self.sig_hash_bip143(index, None, None);
             witness = input.clone().witness;
         } else if script_pubkey.is_p2wsh_script_pubkey() {
