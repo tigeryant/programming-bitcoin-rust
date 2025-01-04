@@ -402,15 +402,22 @@ impl Script {
         self.commands[4][0] == 0xac // OP_CHECKSIG
     }
 
+    pub fn is_redeem_script(&self) -> bool {
+        // Possibly a redeem script
+        self.commands.len() == 1 && // contains one element
+        self.commands[0].len() > 1 // element is a data element
+    }
+
     pub fn script_type(&self) -> String {
        match self {
             _script_type if self.commands.is_empty() => String::from("script commands empty"),
+            _script_type if self.is_redeem_script() => String::from("1 data element - (possibly redeem script)"),
             _script_type if self.is_p2sh_script_pubkey() => String::from("P2SH"),
-            _script_type if self.is_p2wsh_script_pubkey() => String::from("P2WSH"),
             _script_type if self.is_p2wpkh_script_pubkey() => String::from("P2WPKH"),
             _script_type if self.is_p2tr_script_pubkey() => String::from("P2TR"),
             _script_type if self.is_p2pk_script_pubkey() => String::from("P2PK"),
             _script_type if self.is_p2pkh_script_pubkey() => String::from("P2PKH"),
+            _script_type if self.is_p2wsh_script_pubkey() => String::from("P2WSH"),
             _ => String::from("unknown")
         } 
     }
