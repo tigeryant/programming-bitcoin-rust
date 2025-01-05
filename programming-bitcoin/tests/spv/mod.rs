@@ -1,4 +1,6 @@
-use programming_bitcoin::spv::utils::{merkle_parent, merkle_parent_level, merkle_root};
+use std::io::Cursor;
+
+use programming_bitcoin::{blocks::block::Block, spv::utils::{merkle_parent, merkle_parent_level, merkle_root}};
 
 #[test]
 fn test_merkle_parent() {
@@ -75,7 +77,7 @@ fn test_merkle_root() {
 }
 
 #[test]
-pub fn test_merkle_root_endianness() {
+fn test_merkle_root_endianness() {
     let hashes_le: Vec<&str> = vec![
         "42f6f52f17620653dcc909e58bb352e0bd4bd1381e2955d19c00959a22122b2e",
         "94c3af34b9667bf787e1c6a0a009201589755d01d02fe2877cc69b929d2418d4",
@@ -104,4 +106,16 @@ pub fn test_merkle_root_endianness() {
     let expected = hex::decode("654d6181e18e4ac4368383fdc5eead11bf138f9b7ac1e15334e4411b3c4797d9").unwrap();
 
     assert_eq!(merkle_root, expected);
+}
+
+#[test]
+fn test_validate_merkle_root() {
+    // create a block (from a raw serialization)
+    // call validate merkle root and assert it's true
+
+    let raw_block = hex::decode("01000000a0d4ea3416518af0b238fef847274fc768cd39d0dc44a0ea5ec0c2dd000000007edfbf7974109f1fd628f17dfefd4915f217e0ec06e0c74e45049d36850abca4bc0eb049ffff001d27d0031e0101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0804ffff001d024f02ffffffff0100f2052a010000004341048a5294505f44683bbc2be81e0f6a91ac1a197d6050accac393aad3b86b2398387e34fedf0de5d9f185eb3f2c17f3564b9170b9c262aa3ac91f371279beca0cafac00000000").unwrap();
+    let mut reader = Cursor::new(raw_block);
+    let block = Block::parse(&mut reader).unwrap();
+
+    assert!(block.validate_merkle_root());
 }

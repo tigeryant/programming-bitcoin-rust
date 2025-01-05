@@ -350,18 +350,18 @@ async fn test_get_data() {
     let mut block_received = false;
 
     let mut received_message: NetworkMessages;
-    let mut block: BlockMessage = BlockMessage::default();
+    let mut block_msg: BlockMessage = BlockMessage::default();
 
     while !(block_received) {
         received_message = node.listen().await.unwrap();
 
         if let NetworkMessages::Block(block_message) = received_message {
             block_received = true;
-            block = block_message;
+            block_msg = block_message;
         }
     }
 
-    let transactions = block.txs.into_iter().enumerate().take(3000);
+    let transactions = block_msg.block.txs.into_iter().enumerate().take(3000);
 
     let mut p2wpkh_txs: Vec<TxInput> = vec![];
 
@@ -418,18 +418,18 @@ async fn fetch_transactions() {
     let mut block_received = false;
 
     let mut received_message: NetworkMessages;
-    let mut block: BlockMessage = BlockMessage::default();
+    let mut block_msg: BlockMessage = BlockMessage::default();
 
     while !(block_received) {
         received_message = node.listen().await.unwrap();
 
         if let NetworkMessages::Block(block_message) = received_message {
             block_received = true;
-            block = block_message;
+            block_msg = block_message;
         }
     }
 
-    let transactions = block.txs.into_iter().enumerate().take(3000);
+    let transactions = block_msg.block.txs.into_iter().enumerate().take(3000);
     let total_txs: usize = 80;
     let tx_ids: Vec<(usize, String)> = transactions.map(|(i, tx)| (i, tx.id())).take(total_txs).collect();
 

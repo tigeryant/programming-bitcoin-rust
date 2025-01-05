@@ -58,7 +58,10 @@ impl Block {
             .map(|tx| hex::decode(tx.id()).unwrap())
             .collect::<Vec<Vec<u8>>>();
 
-        let computed_merkle_root: [u8; 32] = merkle_root(hashes.to_vec()).try_into().unwrap();
+        let mut computed_merkle_root: [u8; 32] = merkle_root(hashes.to_vec()).try_into().unwrap();
+
+        // Reverse byte order from big to little endian
+        computed_merkle_root.reverse();
 
         let expected = self.header.merkle_root;
 
