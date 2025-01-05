@@ -17,11 +17,7 @@ pub fn merkle_parent_level(mut hashes: Vec<Vec<u8>>) -> Vec<Vec<u8>> {
         .collect::<Vec<Vec<u8>>>()
 }
 
-pub fn merkle_root(hashes: Vec<&str>) -> Vec<u8> {
-    let hashes = hashes
-        .into_iter()
-        .map(|hash| hex::decode(hash).unwrap())
-        .collect::<Vec<Vec<u8>>>();
+pub fn merkle_root(hashes: Vec<Vec<u8>>) -> Vec<u8> {
 
     let mut current_hashes = hashes;
 

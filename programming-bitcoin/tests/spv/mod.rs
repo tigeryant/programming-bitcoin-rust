@@ -2,10 +2,13 @@ use programming_bitcoin::spv::utils::{merkle_parent, merkle_parent_level, merkle
 
 #[test]
 fn test_merkle_parent() {
-    let hash_0 = hex::decode("c117ea8ec828342f4dfb0ad6bd140e03a50720ece40169ee38bdc15d9eb64cf5").unwrap();
-    let hash_1 = hex::decode("c131474164b412e3406696da1ee20ab0fc9bf41c8f05fa8ceea7a08d672d7cc5").unwrap();
+    let hash_0 =
+        hex::decode("c117ea8ec828342f4dfb0ad6bd140e03a50720ece40169ee38bdc15d9eb64cf5").unwrap();
+    let hash_1 =
+        hex::decode("c131474164b412e3406696da1ee20ab0fc9bf41c8f05fa8ceea7a08d672d7cc5").unwrap();
     let parent = merkle_parent(hash_0, hash_1);
-    let expected = hex::decode("8b30c5ba100f6f2e5ad1e2a742e5020491240f8eb514fe97c713c31718ad7ecd").unwrap();
+    let expected =
+        hex::decode("8b30c5ba100f6f2e5ad1e2a742e5020491240f8eb514fe97c713c31718ad7ecd").unwrap();
     assert_eq!(parent, expected);
 }
 
@@ -31,9 +34,12 @@ fn test_merkle_parent_level() {
         dbg!(hex::encode(node));
     }
 
-    let node_a_expected = hex::decode("8b30c5ba100f6f2e5ad1e2a742e5020491240f8eb514fe97c713c31718ad7ecd").unwrap();
-    let node_b_expected = hex::decode("7f4e6f9e224e20fda0ae4c44114237f97cd35aca38d83081c9bfd41feb907800").unwrap();
-    let node_c_expected = hex::decode("3ecf6115380c77e8aae56660f5634982ee897351ba906a6837d15ebc3a225df0").unwrap();
+    let node_a_expected =
+        hex::decode("8b30c5ba100f6f2e5ad1e2a742e5020491240f8eb514fe97c713c31718ad7ecd").unwrap();
+    let node_b_expected =
+        hex::decode("7f4e6f9e224e20fda0ae4c44114237f97cd35aca38d83081c9bfd41feb907800").unwrap();
+    let node_c_expected =
+        hex::decode("3ecf6115380c77e8aae56660f5634982ee897351ba906a6837d15ebc3a225df0").unwrap();
     assert_eq!(node_a_expected, parent_level[0]);
     assert_eq!(node_b_expected, parent_level[1]);
     assert_eq!(node_c_expected, parent_level[2]);
@@ -56,8 +62,46 @@ fn test_merkle_root() {
         "b13a750047bc0bdceb2473e5fe488c2596d7a7124b4e716fdd29b046ef99bbf0",
     ];
 
+    let hashes = hashes
+        .into_iter()
+        .map(|hash| hex::decode(hash).unwrap())
+        .collect::<Vec<Vec<u8>>>();
+
     let merkle_root = merkle_root(hashes);
 
-    let expected = hex::decode("acbcab8bcc1af95d8d563b77d24c3d19b18f1486383d75a5085c4e86c86beed6").unwrap();
+    let expected =
+        hex::decode("acbcab8bcc1af95d8d563b77d24c3d19b18f1486383d75a5085c4e86c86beed6").unwrap();
+    assert_eq!(merkle_root, expected);
+}
+
+#[test]
+pub fn test_merkle_root_endianness() {
+    let hashes_le: Vec<&str> = vec![
+        "42f6f52f17620653dcc909e58bb352e0bd4bd1381e2955d19c00959a22122b2e",
+        "94c3af34b9667bf787e1c6a0a009201589755d01d02fe2877cc69b929d2418d4",
+        "959428d7c48113cb9149d0566bde3d46e98cf028053c522b8fa8f735241aa953",
+        "a9f27b99d5d108dede755710d4a1ffa2c74af70b4ca71726fa57d68454e609a2",
+        "62af110031e29de1efcad103b3ad4bec7bdcf6cb9c9f4afdd586981795516577",
+        "766900590ece194667e9da2984018057512887110bf54fe0aa800157aec796ba",
+        "e8270fb475763bc8d855cfe45ed98060988c1bdcad2ffc8364f783c98999a208",
+    ];
+
+    // Convert each hash to Vec<u8> and switch from little to big endian
+    let hashes_be = hashes_le
+        .into_iter()
+        .map(|hash| {
+            let mut bytes = hex::decode(hash).unwrap();
+            bytes.reverse();
+            bytes
+        })
+        .collect::<Vec<Vec<u8>>>();
+
+    let mut merkle_root = merkle_root(hashes_be);
+
+    // Reverse byte order from big to little endian
+    merkle_root.reverse();
+
+    let expected = hex::decode("654d6181e18e4ac4368383fdc5eead11bf138f9b7ac1e15334e4411b3c4797d9").unwrap();
+
     assert_eq!(merkle_root, expected);
 }
