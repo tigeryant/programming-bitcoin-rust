@@ -1,6 +1,5 @@
 use std::{cell::RefCell, collections::HashMap, io::Cursor};
 use reqwest;
-use tokio::task::JoinHandle;
 use crate::transactions::tx::Tx;
 
 pub struct TxFetcher {

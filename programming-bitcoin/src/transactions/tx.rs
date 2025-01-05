@@ -248,8 +248,7 @@ impl Tx {
                         items.push(witness_item);
                     }
                 }
-                let input = input.set_witness(Some(items.clone()));
-                input
+                input.set_witness(Some(items.clone()))
             })
             .collect();
 

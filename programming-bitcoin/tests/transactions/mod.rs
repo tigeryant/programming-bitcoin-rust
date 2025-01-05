@@ -46,6 +46,10 @@ fn test_verify_input() {
     // mainnet tx
     let raw_tx = hex::decode("0100000001813f79011acb80925dfe69b3def355fe914bd1d96a3f5f71bf8303c6a989c7d1000000006b483045022100ed81ff192e75a3fd2304004dcadb746fa5e24c5031ccfcf21320b0277457c98f02207a986d955c6e0cb35d446a89d3f56100f4d7f67801c31967743a9c8e10615bed01210349fc4e631e3624a545de3f89f5d8684c7b8138bd94bdd531d2e213bf016b278afeffffff02a135ef01000000001976a914bc3b654dca7e56b04dca18f2566cdaf02e8d9ada88ac99c39800000000001976a9141c4bc762dd5423e332166702cb75f40df79fea1288ac19430600").unwrap();
     let mut stream = Cursor::new(raw_tx);
+    
+    // Add sleep to avoid rate limiting
+    std::thread::sleep(std::time::Duration::from_millis(1750));
+    
     let tx = Tx::parse(&mut stream, false);
     let result = tx.verify_input(SigHashType::SigHashAll, 0);
     assert!(result);
@@ -122,6 +126,10 @@ fn test_construct_testnet_tx() {
 fn verify_p2sh_tx() {
     let raw_tx = hex::decode("0100000001868278ed6ddfb6c1ed3ad5f8181eb0c7a385aa0836f01d5e4789e6bd304d87221a000000db00483045022100dc92655fe37036f47756db8102e0d7d5e28b3beb83a8fef4f5dc0559bddfb94e02205a36d4e4e6c7fcd16658c50783e00c341609977aed3ad00937bf4ee942a8993701483045022100da6bee3c93766232079a01639d07fa869598749729ae323eab8eef53577d611b02207bef15429dcadce2121ea07f233115c6f09034c0be68db99980b9a6c5e75402201475221022626e955ea6ea6d98850c994f9107b036b1334f18ca8830bfff1295d21cfdb702103b287eaf122eea69030a0e9feed096bed8045c8b98bec453e1ffac7fbdbd4bb7152aeffffffff04d3b11400000000001976a914904a49878c0adfc3aa05de7afad2cc15f483a56a88ac7f400900000000001976a914418327e3f3dda4cf5b9089325a4b95abdfa0334088ac722c0c00000000001976a914ba35042cfe9fc66fd35ac2224eebdafd1028ad2788acdc4ace020000000017a91474d691da1574e6b3c192ecfb52cc8984ee7b6c568700000000").unwrap();
     let mut stream = Cursor::new(raw_tx);
+
+    // Add sleep to avoid rate limiting
+    std::thread::sleep(std::time::Duration::from_millis(1750));
+
     let tx = Tx::parse(&mut stream, false);
     let result = tx.verify_input(SigHashType::SigHashAll, 0);
     assert!(result);
@@ -192,10 +200,11 @@ fn test_parse_hash() {
 
 #[tokio::test]
 async fn test_identify_p2wpkh() {
+    // mainnet tx
     let raw_tx = hex::decode("020000000001016972546966be990440a0665b73d0f4c3c942592d1f64d1033717aaa3e2c2ec910000000000fdffffff01610a0200000000001976a91476c6195adcbea5c8656d33e8af0567833e63b8c988ac024730440220424c69a855dc79b1f34d9a2ae88b4269988f4dc1dff697fc0d32b4bcfb70a36d022058c359af022f0db3bd37cbe8a426e5218ce61c761b161668883312f1055745550121022a263d5273494ce9247387770ae66e6989b665aaf8fade4403fd1b06601b9cdf9d640a00").unwrap();
     let mut stream = Cursor::new(raw_tx);
-    let tx = Tx::parse(&mut stream, false);
-    let testnet = true;
+    let testnet = false;
+    let tx = Tx::parse(&mut stream, testnet);
 
     for input in tx.tx_ins.iter() {
         // guard againt coinbase tx input
@@ -262,7 +271,7 @@ fn test_verify_p2wsh_input() {
 #[test]
 #[ignore]
 fn test_verify_p2sh_p2wsh_input() {
-    todo!("update the input tx for this tx - find a valid p2sh_p2wsh tx to test. op_checksig failing");
+    // todo!("update the input tx for this tx - find a valid p2sh_p2wsh tx to test. op_checksig failing");
     // testnet tx - id: 954f43dbb30ad8024981c07d1f5eb6c9fd461e2cf1760dd1283f052af746fc88
     let raw_tx = hex::decode("0100000000010115e180dc28a2327e687facc33f10f2a20da717e5548406f7ae8b4c811072f856040000002322002001d5d92effa6ffba3efa379f9830d0f75618b13393827152d26e4309000e88b1ffffffff0188b3f505000000001976a9141d7cd6c75c2e86f4cbf98eaed221b30bd9a0b92888ac02473044022038421164c6468c63dc7bf724aa9d48d8e5abe3935564d38182addf733ad4cd81022076362326b22dd7bfaf211d5b17220723659e4fe3359740ced5762d0e497b7dcc012321038262a6c6cec93c2d3ecd6c6072efea86d02ff8e3328bbd0242b20af3425990acac00000000").unwrap();
     let mut stream = Cursor::new(raw_tx);

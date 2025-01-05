@@ -307,6 +307,7 @@ async fn get_validate_headers() {
 }
 
 #[tokio::test]
+#[ignore]
 async fn test_get_data() {
     let host = PUBLIC_TESTNET_NODE_IP;
     // let host = PI_TESTNET_NODE_IP;

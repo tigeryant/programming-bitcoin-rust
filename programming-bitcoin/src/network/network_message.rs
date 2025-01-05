@@ -6,7 +6,7 @@ pub trait NetworkMessage where Self: Sized {
     fn command(&self) -> &str;
     fn serialize(&self) -> Vec<u8>;
     fn parse(&self, stream: &mut Cursor<Vec<u8>>) -> Result<Self, Error>;
-    async fn default_async(cmd: &str) -> Result<Self, Error>;
+    fn default_async(cmd: &str) -> impl std::future::Future<Output = Result<Self, Error>> + Send;
 }
 
 #[derive(Clone)]
