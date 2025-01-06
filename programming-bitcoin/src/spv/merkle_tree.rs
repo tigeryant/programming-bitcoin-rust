@@ -1,14 +1,14 @@
 pub struct MerkleTree {
     pub total_leaves: u32,
-    pub max_depth: u32,
+    pub max_depth: usize,
     pub nodes: Vec<Vec<Option<Vec<u8>>>>,
-    pub current_depth: u32,
-    pub current_index: u32
+    pub current_depth: usize,
+    pub current_index: usize
 }
 
 impl MerkleTree {
     pub fn new(total_leaves: u32) -> Self {
-        let max_depth = (total_leaves as f64).log2().ceil() as u32;
+        let max_depth = (total_leaves as f64).log2().ceil() as usize;
         let nodes = (0..max_depth + 1)
             .map(|depth| {
                 // Calculate number of items at this depth
@@ -18,8 +18,8 @@ impl MerkleTree {
             })
             .collect();
 
-        let current_depth: u32 = 0;
-        let current_index: u32 = 0;
+        let current_depth: usize = 0;
+        let current_index: usize = 0;
 
         Self {
             total_leaves,
@@ -28,7 +28,45 @@ impl MerkleTree {
             current_depth,
             current_index,
         }
+    }
 
+    pub fn up(&mut self) {
+        self.current_depth -= 1;
+        self.current_index /= 2;
+    }
+
+    pub fn left(&mut self) {
+        self.current_depth += 1;
+        self.current_index *= 2;
+    }
+
+    pub fn right(&mut self) {
+        self.current_depth += 1;
+        self.current_index = self.current_index * 2 + 1;
+    }
+
+    pub fn root(&self) -> Option<Vec<u8>> {
+        self.nodes[0][0].clone()
+    }
+
+    pub fn set_current_node(&mut self, value: Option<Vec<u8>>) {
+        self.nodes[self.current_depth][self.current_index] = value;
+    }
+
+    pub fn get_left_node(&self) -> Option<Vec<u8>> {
+        self.nodes[self.current_depth + 1][self.current_index * 2].clone()
+    }
+
+    pub fn get_right_node(&self) -> Option<Vec<u8>> {
+        self.nodes[self.current_depth + 1][self.current_index * 2 + 1].clone()
+    }
+
+    pub fn is_leaf(&self) -> bool {
+        self.current_depth == self.max_depth
+    }
+
+    pub fn right_exists(&mut self) -> bool {
+        self.nodes[self.current_depth + 1].len() > self.current_index * 2 + 1
     }
 }
 
@@ -53,7 +91,7 @@ impl fmt::Display for MerkleTree {
                     Some(hash) => format!("{}...", hex::encode(&hash[..4]))
                 };
 
-                if depth as u32 == self.current_depth && index as u32 == self.current_index {
+                if depth == self.current_depth && index == self.current_index {
                     items.push(format!("*{}*", short));
                 } else {
                     items.push(short);
