@@ -1,6 +1,6 @@
 use std::io::Cursor;
 
-use programming_bitcoin::{blocks::block::Block, spv::utils::{merkle_parent, merkle_parent_level, merkle_root}};
+use programming_bitcoin::{blocks::block::Block, spv::{merkle_tree::MerkleTree, utils::{merkle_parent, merkle_parent_level, merkle_root}}};
 
 #[test]
 fn test_merkle_parent() {
@@ -118,4 +118,15 @@ fn test_validate_merkle_root() {
     let block = Block::parse(&mut reader).unwrap();
 
     assert!(block.validate_merkle_root());
+}
+
+#[test]
+fn default_empty_merkle_tree() {
+    let tree = MerkleTree::new(27);
+    println!("{tree}");
+    for level in tree.nodes {
+        for node in level {
+            assert!(node.is_none())
+        }
+    }
 }
